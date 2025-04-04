@@ -8,15 +8,13 @@ import java.util.stream.Stream;
 
 @Component
 public class UserPhoneFilter implements UserFilter {
-
     @Override
-    public boolean isAvailable(UserFilterDto filter) {
-
-        return filter.getPhonePattern() != null && !filter.getPhonePattern().isBlank();
+    public boolean isApplicable(UserFilterDto userFilterDto) {
+        return userFilterDto.phonePattern() != null;
     }
 
     @Override
-    public Stream<User> apply(Stream<User> users, UserFilterDto filter) {
-        return users.filter(user -> filter.getPhonePattern().equals(user.getPhone()));
+    public Stream<User> apply(Stream<User> userStream, UserFilterDto userFilterDto) {
+        return userStream.filter(user -> user.getPhone().matches(userFilterDto.phonePattern()));
     }
 }

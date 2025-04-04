@@ -7,22 +7,21 @@ import school.faang.user_service.entity.User;
 import java.util.stream.Stream;
 
 @Component
-public class UserExperienceFilter  implements UserFilter {
+public class UserExperienceFilter implements UserFilter {
     @Override
-    public boolean isAvailable(UserFilterDto filter) {
-        return filter.getExperienceMin() < filter.getExperienceMax();
-    }
-
-    @Override
-    public Stream<User> apply(Stream<User> users, UserFilterDto filter) {
-        return users.filter(user -> isRelevant(user.getExperience(), filter));
-    }
-
-    private boolean isRelevant(Integer userExperience, UserFilterDto filter) {
-        if (userExperience == null) {
-            return false;
+    public boolean isApplicable(UserFilterDto userFilterDto) {
+        if (userFilterDto.experienceMin() < 0) {
+            throw new IllegalArgumentException("Minimal experience must be positive.");
         }
-        return filter.getExperienceMin() <= userExperience &&
-                userExperience < filter.getExperienceMax();
+        if (userFilterDto.experienceMax() < 0) {
+            throw new IllegalArgumentException("Maximal experience must be positive.");
+        }
+        return true;
+    }
+
+    @Override
+    public Stream<User> apply(Stream<User> userStream, UserFilterDto userFilterDto) {
+        return userStream.filter(user -> user.getExperience() >= userFilterDto.experienceMin()
+                && user.getExperience() <= userFilterDto.experienceMax());
     }
 }

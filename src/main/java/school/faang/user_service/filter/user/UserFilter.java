@@ -6,8 +6,7 @@ import school.faang.user_service.entity.User;
 import java.util.stream.Stream;
 
 public interface UserFilter {
+    boolean isApplicable(UserFilterDto userFilterDto);
 
-    boolean isAvailable(UserFilterDto filter);
-
-    Stream<User> apply(Stream<User> users, UserFilterDto filter);
+    Stream<User> apply(Stream<User> userStream, UserFilterDto userFilterDto);
 }

@@ -8,14 +8,13 @@ import java.util.stream.Stream;
 
 @Component
 public class UserNameFilter implements UserFilter {
-
     @Override
-    public boolean isAvailable(UserFilterDto filter) {
-        return filter.getNamePattern() != null && !filter.getNamePattern().isBlank();
+    public boolean isApplicable(UserFilterDto userFilterDto) {
+        return userFilterDto.namePattern() != null;
     }
 
     @Override
-    public Stream<User> apply(Stream<User> users, UserFilterDto filter) {
-        return users.filter(user -> filter.getNamePattern().equals(user.getUsername()));
+    public Stream<User> apply(Stream<User> userStream, UserFilterDto userFilterDto) {
+        return userStream.filter(user -> user.getUsername().matches(userFilterDto.namePattern()));
     }
 }

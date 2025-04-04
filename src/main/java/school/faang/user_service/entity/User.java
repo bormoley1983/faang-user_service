@@ -26,9 +26,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 import school.faang.user_service.entity.contact.Contact;
 import school.faang.user_service.entity.contact.ContactPreference;
 import school.faang.user_service.entity.event.Event;
+import school.faang.user_service.entity.event.Rating;
 import school.faang.user_service.entity.goal.Goal;
 import school.faang.user_service.entity.goal.GoalInvitation;
-import school.faang.user_service.entity.event.Rating;
 import school.faang.user_service.entity.premium.Premium;
 import school.faang.user_service.entity.recommendation.Recommendation;
 
@@ -42,7 +42,6 @@ import java.util.List;
 @Entity
 @Table(name = "users")
 public class User {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
