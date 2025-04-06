@@ -9,14 +9,14 @@ import school.faang.user_service.service.user.UserService;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class UserBanKafkaListener {
+public class UserBanListener {
     private final UserService userService;
 
     @KafkaListener(
             topics = "${spring.kafka.consumer.topics.user-ban}",
             groupId = "${spring.kafka.consumer.groups.user-ban}"
     )
-    public void listenUserBan(String userId) {
+    public void userBanListener(String userId) {
         log.info("Received request from kafka to ban user with ID {}", userId);
         userService.banUser(Long.valueOf(userId));
     }
