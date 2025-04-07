@@ -27,19 +27,23 @@ public class PremiumService {
     @Async
     public void removeExpiredPremiumAccess() {
         LocalDateTime now = LocalDateTime.now();
-        List<Premium> expiredPremiums = premiumRepository.findAllByEndDateBefore(LocalDateTime.now());
-        if (expiredPremiums.isEmpty()) {
-            log.info("No expired premium accesses found before date: {}", now);
-        } else {
-            List<Long> expiredIds = expiredPremiums.stream()
-                    .map(Premium::getId)
-                    .toList();
-            List<List<Long>> idBatches = ListUtils.partition(expiredIds, partitionSize);
-            for (List<Long> batch : idBatches) {
-                premiumRepository.deleteByIdIn(batch);
-                log.info("Expired premium accesses before date: {} - was deleted in thread - {}",
-                        now, Thread.currentThread().getName());
+        try {
+            List<Premium> expiredPremiums = premiumRepository.findAllByEndDateBefore(now);
+            if (expiredPremiums.isEmpty()) {
+                log.info("No expired premium accesses found before date: {}", now);
+            } else {
+                List<Long> expiredIds = expiredPremiums.stream()
+                        .map(Premium::getId)
+                        .toList();
+                List<List<Long>> idBatches = ListUtils.partition(expiredIds, partitionSize);
+                for (List<Long> batch : idBatches) {
+                    premiumRepository.deleteByIdIn(batch);
+                    log.info("Expired premium accesses before date: {} - was deleted in thread - {}",
+                            now, Thread.currentThread().getName());
+                }
             }
+        } catch (Exception e) {
+            log.error("Error during expired premium access removal: {}", e.getMessage(), e);
         }
     }
 
