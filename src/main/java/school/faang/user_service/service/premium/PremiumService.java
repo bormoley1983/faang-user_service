@@ -29,12 +29,8 @@ public class PremiumService {
         LocalDateTime now = LocalDateTime.now();
         try {
             List<Premium> expiredPremiums = premiumRepository.findAllByEndDateBefore(now);
-            if (expiredPremiums.isEmpty()) {
-                log.info("No expired premium accesses found before date: {}", now);
-            } else {
-                List<Long> expiredIds = expiredPremiums.stream()
-                        .map(Premium::getId)
-                        .toList();
+            if (!expiredPremiums.isEmpty()) {
+                List<Long> expiredIds = getPremiumIds(expiredPremiums);
                 List<List<Long>> idBatches = ListUtils.partition(expiredIds, partitionSize);
                 for (List<Long> batch : idBatches) {
                     premiumRepository.deleteByIdIn(batch);
@@ -45,6 +41,12 @@ public class PremiumService {
         } catch (Exception e) {
             log.error("Error during expired premium access removal: {}", e.getMessage(), e);
         }
+    }
+
+    private List<Long> getPremiumIds(List<Premium> premiums) {
+        return premiums.stream()
+                .map(Premium::getId)
+                .toList();
     }
 
 }
