@@ -5,7 +5,6 @@ import school.faang.user_service.dto.UserFilterDto;
 import school.faang.user_service.entity.User;
 
 import java.util.Objects;
-import java.util.stream.Stream;
 
 @Component
 public class UserPhoneFilter extends UserFilter {

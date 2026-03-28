@@ -15,8 +15,6 @@ import school.faang.user_service.dto.avatar.AvatarType;
 import school.faang.user_service.entity.Country;
 import school.faang.user_service.entity.User;
 import school.faang.user_service.entity.UserProfilePic;
-import school.faang.user_service.entity.contact.PreferredContact;
-import school.faang.user_service.entity.contact.PreferredContact;
 import school.faang.user_service.entity.event.Event;
 import school.faang.user_service.entity.event.EventStatus;
 import school.faang.user_service.entity.goal.Goal;
@@ -24,7 +22,6 @@ import school.faang.user_service.event.AnalyticsProfileViewEvent;
 import school.faang.user_service.mapper.UserMapper;
 import school.faang.user_service.repository.CountryRepository;
 import school.faang.user_service.repository.UserRepository;
-import school.faang.user_service.repository.contact.ContactPreferenceRepository;
 import school.faang.user_service.repository.event.EventRepository;
 import school.faang.user_service.repository.goal.GoalRepository;
 import school.faang.user_service.service.MentorshipService;
@@ -174,12 +171,12 @@ public class UserService {
         userRepository.save(currentUser);
     }
 
-    private void chooseNotificationMethode(Long userId, PreferredContact preferredContact) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException(String.format(USER_NOT_FOUND, userId)));
-        user.setPreference(preferredContact);
-        userRepository.save(user);
-    }
+    // private void chooseNotificationMethode(Long userId, PreferredContact preferredContact) {
+    //     User user = userRepository.findById(userId)
+    //             .orElseThrow(() -> new IllegalArgumentException(String.format(USER_NOT_FOUND, userId)));
+    //     user.setPreference(preferredContact);
+    //     userRepository.save(user);
+    // }
 
     private void deactivateUserDependencies(Long userId) {
         removeUserFromGoals(userId);

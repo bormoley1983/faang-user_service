@@ -10,6 +10,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
+
 import school.faang.user_service.entity.Country;
 import school.faang.user_service.entity.User;
 import school.faang.user_service.entity.event.Event;
@@ -18,6 +20,8 @@ import school.faang.user_service.entity.event.EventType;
 import school.faang.user_service.repository.CountryRepository;
 import school.faang.user_service.repository.UserRepository;
 import school.faang.user_service.repository.event.EventRepository;
+import org.testcontainers.containers.Network;
+
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,23 +36,32 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @SpringBootTest
 public class EventSchedulerTest {
 
+    private static final DockerImageName POSTGRES_IMAGE = DockerImageName.parse("postgres:18-alpine");
+
+        static Network testNetwork = Network.newNetwork();
+
     @Container
-    private static final PostgreSQLContainer postgreSQLContainer = new PostgreSQLContainer("postgres:13.3")
-            .withDatabaseName("user_service_test")
-            .withUsername("sa")
-            .withPassword("sa");
+    @SuppressWarnings("resource")
+    protected static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER = 
+        new PostgreSQLContainer<>(POSTGRES_IMAGE)
+            .withNetwork(testNetwork)
+            .withNetworkAliases("test-postgres")		        
+            .withDatabaseName("testdb")
+            .withUsername("test")
+            .withPassword("test")
+            .withReuse(true);
 
     private static final int SECONDS_TO_WAIT = 10;
     @DynamicPropertySource
     private static void setDatasourceProperties(DynamicPropertyRegistry properties) {
-        properties.add("spring.datasource.url", postgreSQLContainer::getJdbcUrl);
-        properties.add("spring.datasource.username", postgreSQLContainer::getUsername);
-        properties.add("spring.datasource.password", postgreSQLContainer::getPassword);
+        properties.add("spring.datasource.url", POSTGRESQL_CONTAINER::getJdbcUrl);
+        properties.add("spring.datasource.username", POSTGRESQL_CONTAINER::getUsername);
+        properties.add("spring.datasource.password", POSTGRESQL_CONTAINER::getPassword);
         properties.add("event.removal.cron", () -> String.format("*/%d * * * * *", SECONDS_TO_WAIT));
     }
 
-    @Autowired
-    private EventScheduler scheduler;
+//     @Autowired
+//     private EventScheduler scheduler;
     @Autowired
     private EventRepository eventRepository;
     @Autowired

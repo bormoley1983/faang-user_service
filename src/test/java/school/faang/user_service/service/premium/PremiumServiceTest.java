@@ -88,7 +88,7 @@ public class PremiumServiceTest {
 
     @Test
     public void testPremiumFindByUserId() {
-        Pair<PaymentRequest, ResponseEntity<PaymentResponse>> paymentPair = setUpPaymentRequestAndResponse(false);
+        // Pair<PaymentRequest, ResponseEntity<PaymentResponse>> paymentPair = setUpPaymentRequestAndResponse(false);
 
         when(userRepository.findById(userId))
                 .thenReturn(Optional.empty());

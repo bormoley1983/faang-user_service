@@ -1,14 +1,21 @@
 plugins {
     java
     jacoco
-    id("org.springframework.boot") version "3.0.6"
-    id("io.spring.dependency-management") version "1.1.0"
+    id("org.springframework.boot") version "4.0.5"
+    id("io.spring.dependency-management") version "1.1.7"
     id("org.jsonschema2pojo") version "1.2.1"
-    kotlin("jvm")
 }
 
 group = "faang.school"
 version = "1.0"
+
+val javaVersion = 25
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
+}
 
 configurations {
     compileOnly {
@@ -20,78 +27,79 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.1.1")
+        mavenBom("org.testcontainers:testcontainers-bom:2.0.3")
+    }
+}
 
+dependencies {
     /**
      * Spring boot starters
      */
-    implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.springframework.kafka:spring-kafka:3.3.2")
-    implementation("org.springframework.cloud:spring-cloud-starter-openfeign:4.0.2")
+    implementation("org.springframework.boot:spring-boot-starter-restclient")
+    implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
+    implementation("org.springframework.kafka:spring-kafka")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+
+    // Swagger
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1")
+
+    /**
+     * Database
+     */
+    runtimeOnly("org.postgresql:postgresql")
+    implementation("org.liquibase:liquibase-core")
+    
     /**
      * Quartz Scheduler
      */
     implementation("org.quartz-scheduler:quartz:2.3.2")
-    /**
-     * Database
-     */
-    implementation("org.liquibase:liquibase-core")
-    implementation("redis.clients:jedis:4.3.2")
-    runtimeOnly("org.postgresql:postgresql")
+
 
     /**
      * Amazon S3
      */
-    implementation("com.amazonaws:aws-java-sdk-s3:1.12.464")
+    implementation(platform("software.amazon.awssdk:bom:2.41.27"))
+    implementation("software.amazon.awssdk:s3")     
+    implementation("software.amazon.awssdk:url-connection-client")
 
-    /**
-     * Apache Kafka
-     */
-    implementation("org.springframework.kafka:spring-kafka:3.3.2")
 
-    /**
+     /**
      * Utils & Logging
-     */
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.14.2")
+     */ 
+    compileOnly("org.projectlombok:lombok")
+    annotationProcessor("org.projectlombok:lombok")
+
+    implementation("org.mapstruct:mapstruct:1.6.3")
+    annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
+    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
+
+    implementation("org.codehaus.janino:janino:3.1.11")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
-    implementation("org.slf4j:slf4j-api:2.0.5")
-    implementation("ch.qos.logback:logback-classic:1.4.6")
-    implementation("org.projectlombok:lombok:1.18.26")
-    annotationProcessor("org.projectlombok:lombok:1.18.26")
-    implementation("org.mapstruct:mapstruct:1.5.3.Final")
-    annotationProcessor("org.mapstruct:mapstruct-processor:1.5.3.Final")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.0.2")
-
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.13.0")
-
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-csv")
+    
     /**
-     * Test containers
+     * Test Containers
      */
-    implementation(platform("org.testcontainers:testcontainers-bom:1.17.6"))
-    testImplementation("org.testcontainers:junit-jupiter")
-    testImplementation("org.testcontainers:postgresql")
-    testImplementation("org.testcontainers:kafka")
-    testImplementation("com.redis.testcontainers:testcontainers-redis-junit-jupiter:1.4.6")
-    testImplementation("org.testcontainers:kafka")
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.kafka:spring-kafka-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+    testImplementation("org.testcontainers:junit-jupiter:1.21.4")
+    testImplementation("org.testcontainers:postgresql:1.21.4")
+    testImplementation("org.testcontainers:kafka:1.21.4")
+    testImplementation("com.redis:testcontainers-redis:2.2.4")
 
     /**
      * Awaitility
      */
     testImplementation("org.awaitility:awaitility:4.3.0")
-
-    /**
-     * Tests
-     */
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.9.2")
-    testImplementation("org.assertj:assertj-core:3.24.2")
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.springframework.kafka:spring-kafka-test:3.3.3")
 
     /**
      * Thumbnail generation
@@ -106,33 +114,29 @@ dependencies {
 
 jsonSchema2Pojo {
     setSource(files("src/main/resources/json"))
-    targetDirectory = file("${project.buildDir}/generated-sources/js2p")
+    targetDirectory = layout.buildDirectory.dir("generated-sources/js2p").get().asFile
     targetPackage = "com.json.student"
     setSourceType("jsonschema")
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
+tasks.withType<JavaCompile>().configureEach {
+    options.compilerArgs.add("-parameters")
 }
-
-val test by tasks.getting(Test::class) { testLogging.showStandardStreams = true }
 
 tasks.bootJar {
     archiveFileName.set("service.jar")
 }
-kotlin {
-    jvmToolchain(17)
-}
 
 jacoco {
-    toolVersion = "0.8.12"
+    toolVersion = "0.8.14"
 }
 
-tasks.test {
+tasks.named<Test>("test") {
     useJUnitPlatform {
         excludeTags("integration")
     }
-    finalizedBy(tasks.jacocoTestReport)
+    testLogging.showStandardStreams = true
+    finalizedBy(tasks.named("jacocoTestReport"))
 }
 
 tasks.jacocoTestReport {
@@ -161,9 +165,3 @@ tasks.jacocoTestCoverageVerification {
 tasks.check {
     dependsOn(tasks.jacocoTestCoverageVerification)
 }
-
-tasks.test {
-    useJUnitPlatform {
-        excludeTags("integration")
-    }
-} //Это Альфир мне сказал так сделать. Стёпа.

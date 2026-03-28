@@ -1,10 +1,8 @@
 package school.faang.user_service.filter.user;
 
-import lombok.NonNull;
 import school.faang.user_service.dto.UserFilterDto;
 import school.faang.user_service.entity.User;
 
-import java.util.stream.Stream;
 
 public abstract class UserFilter {
     public boolean isApplicable(UserFilterDto filters) {

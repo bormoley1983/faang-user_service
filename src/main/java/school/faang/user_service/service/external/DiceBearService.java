@@ -22,7 +22,7 @@ public class DiceBearService {
     public byte[] generateAvatar(String filename, AvatarType type) {
         String style = styleGenerator.getRandomStyleString();
 
-        String url = UriComponentsBuilder.fromHttpUrl(diceBearApiConfig.getApiUrl())
+        String url = UriComponentsBuilder.fromUriString(diceBearApiConfig.getApiUrl())
                 .pathSegment(style)
                 .pathSegment(type.name().toLowerCase())
                 .queryParam("seed", filename)

@@ -1,6 +1,5 @@
 package school.faang.user_service.service.event;
 
-import jakarta.persistence.LockModeType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -94,13 +93,13 @@ public class EventService {
         return eventRepository.findEventsByStartTime(startTime, doubleStartTime);
     }
 
-    private boolean userHasRequiredSkills(Long ownerId, List<Long> requiredSkills) {
-        return userRepository.findById(ownerId).
-                orElseThrow(() -> new IllegalArgumentException("User does not exist"))
-                .getSkills().stream()
-                .map(Skill::getId)
-                .anyMatch(requiredSkills::contains);
-    }
+    // private boolean userHasRequiredSkills(Long ownerId, List<Long> requiredSkills) {
+    //     return userRepository.findById(ownerId).
+    //             orElseThrow(() -> new IllegalArgumentException("User does not exist"))
+    //             .getSkills().stream()
+    //             .map(Skill::getId)
+    //             .anyMatch(requiredSkills::contains);
+    // }
 
     private boolean ownerHasRequiredSkills(Event event) {
         return userRepository.findById(event.getOwner().getId()).

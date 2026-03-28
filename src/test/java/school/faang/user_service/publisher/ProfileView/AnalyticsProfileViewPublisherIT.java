@@ -3,23 +3,23 @@ package school.faang.user_service.publisher.ProfileView;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 import school.faang.user_service.config.Kafka.EventListener;
 import school.faang.user_service.config.context.UserContext;
 import school.faang.user_service.controller.user.UserController;
 import school.faang.user_service.event.AnalyticsProfileViewEvent;
+import org.testcontainers.containers.Network;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -34,9 +34,9 @@ import static org.springframework.test.context.jdbc.Sql.ExecutionPhase.BEFORE_TE
 @Sql(scripts = {"/UserService/drop.sql", "/UserService/user_initial.sql"}, executionPhase = BEFORE_TEST_METHOD)
 @Sql(scripts = "/UserService/drop.sql", executionPhase = AFTER_TEST_METHOD)
 @Import(EventListener.class)
-@ExtendWith(SpringExtension.class)
 @Testcontainers
 @SpringBootTest
+@ActiveProfiles("test")
 public class AnalyticsProfileViewPublisherIT {
 
     @Autowired
@@ -51,13 +51,28 @@ public class AnalyticsProfileViewPublisherIT {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Container
-    private static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER =
-            new PostgreSQLContainer<>("postgres:13.3");
+    private static final DockerImageName POSTGRES_IMAGE = DockerImageName.parse("postgres:18-alpine");
+    private static final DockerImageName KAFKA_IMAGE = DockerImageName.parse("confluentinc/cp-kafka:7.7.7");
+
+    static Network testNetwork = Network.newNetwork();
 
     @Container
-    private static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer(
-            DockerImageName.parse("confluentinc/cp-kafka:7.3.5"));
+    @SuppressWarnings("resource")
+    protected static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER = 
+        new PostgreSQLContainer<>(POSTGRES_IMAGE)
+            .withNetwork(testNetwork)
+            .withNetworkAliases("test-postgres")		        
+            .withDatabaseName("testdb")
+            .withUsername("test")
+            .withPassword("test")
+            .withReuse(true);
+
+    @Container
+    @SuppressWarnings("resource")
+    protected static final  ConfluentKafkaContainer KAFKA_CONTAINER = 
+        new ConfluentKafkaContainer(KAFKA_IMAGE)
+            .withNetwork(testNetwork)
+            .withNetworkAliases("test-kafka");
 
     @DynamicPropertySource
     static void overrideProperties(DynamicPropertyRegistry registry) {
@@ -101,7 +116,7 @@ public class AnalyticsProfileViewPublisherIT {
 
     @Test
     void testAnalyticsEventPublisher_UserNonExist() throws IOException {
-        Long nonExistentUserId = 3L;
+        // Long nonExistentUserId = 3L;
         userContext.setUserId(3L);
 
         userController.getUser(2L);

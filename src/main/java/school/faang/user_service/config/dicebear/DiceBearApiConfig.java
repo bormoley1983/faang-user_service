@@ -4,14 +4,13 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 
 import java.security.SecureRandom;
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 
 @Getter
 @Setter
@@ -26,8 +25,8 @@ public class DiceBearApiConfig {
     @Bean
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
         return builder
-                .setConnectTimeout(Duration.of(connectionTimeoutSeconds, ChronoUnit.SECONDS))
-                .setReadTimeout(Duration.of(readTimeoutSeconds, ChronoUnit.SECONDS))
+                .connectTimeout(Duration.ofSeconds(connectionTimeoutSeconds))
+                .readTimeout(Duration.ofSeconds(readTimeoutSeconds))
                 .build();
     }
 

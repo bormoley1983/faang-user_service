@@ -5,23 +5,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
-import school.faang.user_service.config.context.UserContext;
 import school.faang.user_service.dto.UserDto;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.testcontainers.containers.Network;
 
 import java.util.List;
 
@@ -36,26 +36,42 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Testcontainers
 @AutoConfigureMockMvc
 @SpringBootTest
+@ActiveProfiles("test")
 public class UserServiceIT {
-    @Autowired
-    private KafkaTemplate<String, String> kafkaTemplate;
+//     @Autowired
+//     private KafkaTemplate<String, String> kafkaTemplate;
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private UserContext userContext;
+//     @Autowired
+//     private UserContext userContext;
 
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Container
-    private static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER =
-            new PostgreSQLContainer<>("postgres:13.3");
+    private static final DockerImageName POSTGRES_IMAGE = DockerImageName.parse("postgres:18-alpine");
+    private static final DockerImageName KAFKA_IMAGE = DockerImageName.parse("confluentinc/cp-kafka:7.7.7");
+
+    static Network testNetwork = Network.newNetwork();
 
     @Container
-    private static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer(
-            DockerImageName.parse("confluentinc/cp-kafka:7.3.5"));
+    @SuppressWarnings("resource")
+    protected static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER = 
+        new PostgreSQLContainer<>(POSTGRES_IMAGE)
+            .withNetwork(testNetwork)
+            .withNetworkAliases("test-postgres")		        
+            .withDatabaseName("testdb")
+            .withUsername("test")
+            .withPassword("test")
+            .withReuse(true);
+
+    @Container
+    @SuppressWarnings("resource")
+    protected static final  ConfluentKafkaContainer KAFKA_CONTAINER = 
+        new ConfluentKafkaContainer(KAFKA_IMAGE)
+            .withNetwork(testNetwork)
+            .withNetworkAliases("test-kafka");
 
     @DynamicPropertySource
     static void overrideProperties(DynamicPropertyRegistry registry) {

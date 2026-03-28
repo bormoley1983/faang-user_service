@@ -34,7 +34,7 @@ class UserAvatarServiceTest {
     @InjectMocks
     private UserAvatarService userAvatarService;
 
-    private final String bucketName = "test-bucket";
+    // private final String bucketName = "test-bucket";
 
     @Test
     void generateAvatarForNewUser_ShouldThrowException_WhenAvatarGenerationFails() {

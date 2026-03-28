@@ -54,7 +54,7 @@ class DiceBearServiceTest {
     @Test
     void testGenerateAvatar_Success() {
         byte[] expectedAvatar = "avatar-data".getBytes();
-        String url = UriComponentsBuilder.fromHttpUrl(apiUrl)
+        String url = UriComponentsBuilder.fromUriString(apiUrl)
                 .pathSegment(style)
                 .pathSegment(avatarType.name().toLowerCase())
                 .queryParam("seed", filename)
@@ -72,7 +72,7 @@ class DiceBearServiceTest {
 
     @Test
     void testGenerateAvatar_DiceBearException() {
-        String url = UriComponentsBuilder.fromHttpUrl(apiUrl)
+        String url = UriComponentsBuilder.fromUriString(apiUrl)
                 .pathSegment(style)
                 .pathSegment(avatarType.name().toLowerCase())
                 .queryParam("seed", filename)
@@ -94,7 +94,7 @@ class DiceBearServiceTest {
     @Test
     void testGenerateAvatar_RetryOnTemporaryFailure() {
         byte[] expectedAvatar = "avatar-data".getBytes();
-        String url = UriComponentsBuilder.fromHttpUrl(apiUrl)
+        String url = UriComponentsBuilder.fromUriString(apiUrl)
                 .pathSegment(style)
                 .pathSegment(avatarType.name().toLowerCase())
                 .queryParam("seed", filename)

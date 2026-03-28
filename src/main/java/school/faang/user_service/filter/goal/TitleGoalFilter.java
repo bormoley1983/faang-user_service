@@ -1,6 +1,5 @@
 package school.faang.user_service.filter.goal;
 
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import school.faang.user_service.dto.goal.GoalFilterDto;
 import school.faang.user_service.entity.goal.Goal;
@@ -15,7 +14,7 @@ public class TitleGoalFilter implements GoalFilter {
 
     @Override
     public boolean apply(GoalFilterDto goalFilterDto, Goal goal) {
-        return StringUtils.contains(goal.getTitle(), goalFilterDto.getTitle());
+        return goal.getTitle() != null && goal.getTitle().contains(goalFilterDto.getTitle());
     }
 
 }

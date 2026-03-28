@@ -1,6 +1,5 @@
 package school.faang.user_service.service.goal;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +18,7 @@ import school.faang.user_service.service.user.UserService;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -156,11 +156,13 @@ public class GoalService {
         ).toList();
     }
 
-    private void assignSkillsToGoal(Long goalId, @NotNull(message = "list of skills can't be null") List<Long> skillsId) {
+    private void assignSkillsToGoal(Long goalId, List<Long> skillsId) {
+        Objects.requireNonNull(skillsId, "list of skills can't be null");
         skillsId.forEach(skillId -> goalRepository.addSkillToGoalById(goalId, skillId));
     }
 
-    private void validateSkills(@NotNull(message = "list of skills can't be null") List<Long> skillsId) {
+    private void validateSkills(List<Long> skillsId) {
+        Objects.requireNonNull(skillsId, "list of skills can't be null");
         skillsId.forEach(id -> skillService.findSkillById(id).orElseThrow(
                 () -> new NoSuchElementException(String.format("Skill with id %s doesn't exist", id))
         ));

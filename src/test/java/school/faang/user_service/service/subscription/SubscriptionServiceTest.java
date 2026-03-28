@@ -1,6 +1,6 @@
 package school.faang.user_service.service.subscription;
 
-import kotlin.Pair;
+import org.springframework.data.util.Pair;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -156,7 +156,7 @@ public class SubscriptionServiceTest {
     }
 
     private Pair<Long, Long> preparePairUserIds() {
-        return new Pair<>(1L, 2L);
+        return Pair.of(1L, 2L);
     }
 
     private List<User> prepareExpectedUsers() {

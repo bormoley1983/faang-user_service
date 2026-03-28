@@ -9,7 +9,7 @@ import java.util.Map;
 @Getter
 public enum ErrorMessages {
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "Bad Request"),
-    UNPROCESSABLE_ENTITY(HttpStatus.UNPROCESSABLE_ENTITY, "Unprocessable Entity"),
+    UNPROCESSABLE_ENTITY(HttpStatus.UNPROCESSABLE_CONTENT, "Unprocessable Entity"),
     NOT_FOUND(HttpStatus.NOT_FOUND, "Not Found"),
     CONFLICT(HttpStatus.CONFLICT, "Conflict"),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error");

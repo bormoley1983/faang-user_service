@@ -11,12 +11,14 @@ import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.kafka.test.utils.ContainerTestUtils;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-
 import org.springframework.test.context.TestPropertySource;
-import org.testcontainers.containers.KafkaContainer;
+import org.springframework.test.context.jdbc.Sql;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.Network;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
@@ -28,14 +30,19 @@ import java.util.Optional;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.context.jdbc.Sql.ExecutionPhase.AFTER_TEST_METHOD;
+import static org.springframework.test.context.jdbc.Sql.ExecutionPhase.BEFORE_TEST_METHOD;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 @SpringBootTest
+@ActiveProfiles("test")
 @TestPropertySource(
         properties = {
                 "spring.kafka.consumer.auto-offset-reset=earliest",
         }
 )
+@Sql(scripts = {"/UserService/drop.sql", "/UserService/user_initial.sql"}, executionPhase = BEFORE_TEST_METHOD)
+@Sql(scripts = "/UserService/drop.sql", executionPhase = AFTER_TEST_METHOD)
 @Testcontainers
 public class UserBanIntegrationTest {
 
@@ -52,23 +59,36 @@ public class UserBanIntegrationTest {
     @Value("${spring.kafka.topics.user-ban-topic.name}")
     private String userBanTopicName;
 
-    @Container
-    static final KafkaContainer kafka = new KafkaContainer(
-            DockerImageName.parse("confluentinc/cp-kafka:7.3.0")
-    );
+    private static final DockerImageName KAFKA_IMAGE = DockerImageName.parse("confluentinc/cp-kafka:7.7.7");
+    private static final DockerImageName POSTGRES_IMAGE = DockerImageName.parse("postgres:18-alpine");
+
+    static Network testNetwork = Network.newNetwork();
 
     @Container
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withUsername("user")
-            .withPassword("password");
+    @SuppressWarnings("resource")
+    static final ConfluentKafkaContainer KAFKA_CONTAINER = 
+        new ConfluentKafkaContainer(KAFKA_IMAGE)
+            .withNetwork(testNetwork)
+            .withNetworkAliases("test-kafka");
+
+    @Container
+    @SuppressWarnings("resource")
+    protected static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER = 
+        new PostgreSQLContainer<>(POSTGRES_IMAGE)
+            .withNetwork(testNetwork)
+            .withNetworkAliases("test-postgres")		        
+            .withDatabaseName("testdb")
+            .withUsername("test")
+            .withPassword("test")
+            .withReuse(true);
 
     @DynamicPropertySource
     static void overrideProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", POSTGRESQL_CONTAINER::getUsername);
+        registry.add("spring.datasource.password", POSTGRESQL_CONTAINER::getPassword);
+        registry.add("spring.datasource.url", POSTGRESQL_CONTAINER::getJdbcUrl);
 
-        registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
+        registry.add("spring.kafka.bootstrap-servers", KAFKA_CONTAINER::getBootstrapServers);
     }
 
     @Test

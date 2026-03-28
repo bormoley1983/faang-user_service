@@ -1,6 +1,6 @@
 package school.faang.user_service.service.event;
 
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,7 +34,7 @@ public class EventParticipationServiceTest {
         long userId = 100L;
         Mockito.when(eventParticipationRepository.existsUserByEventIdAndUserId(eventId, userId))
                 .thenReturn(true);
-        Assert.assertThrows(IllegalStateException.class, () ->
+        Assertions.assertThrows(IllegalStateException.class, () ->
                 eventParticipationService.registerParticipant(eventId, userId));
         Mockito.verify(eventParticipationRepository, Mockito.times(0))
                 .register(eventId, userId);
@@ -56,7 +56,7 @@ public class EventParticipationServiceTest {
         long userId = 100L;
         Mockito.when(eventParticipationRepository.existsUserByEventIdAndUserId(eventId, userId))
                 .thenReturn(false);
-        Assert.assertThrows(IllegalStateException.class, () ->
+        Assertions.assertThrows(IllegalStateException.class, () ->
                 eventParticipationService.unregisterParticipant(eventId, userId));
         Mockito.verify(eventParticipationRepository, Mockito.times(0))
                 .unregister(eventId, userId);

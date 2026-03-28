@@ -1,7 +1,5 @@
 package school.faang.user_service.service.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.PutObjectRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -12,6 +10,10 @@ import org.springframework.data.util.Pair;
 import org.springframework.web.multipart.MultipartFile;
 import school.faang.user_service.entity.UserProfilePic;
 import school.faang.user_service.utils.image.ImageProcessor;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -33,7 +35,7 @@ import static org.mockito.Mockito.when;
 public class AvatarS3ServiceTest {
 
     @Mock
-    private AmazonS3 s3Client;
+    private S3Client s3Client;
 
     @Mock
     private ImageProcessor imageProcessor;
@@ -69,17 +71,17 @@ public class AvatarS3ServiceTest {
         Pair<UserProfilePic, String> result = avatarS3Service.uploadAvatar(multipartFile, "large");
 
         ArgumentCaptor<PutObjectRequest> putRequestCaptor = ArgumentCaptor.forClass(PutObjectRequest.class);
-        verify(s3Client, times(2)).putObject(putRequestCaptor.capture());
+        verify(s3Client, times(2)).putObject(putRequestCaptor.capture(), any(RequestBody.class));
         List<PutObjectRequest> requests = putRequestCaptor.getAllValues();
 
-        assertEquals(testBucket, requests.get(0).getBucketName());
-        assertEquals(testBucket, requests.get(1).getBucketName());
-        assertTrue(requests.get(0).getKey().startsWith(avatarFolder + "/"));
+        assertEquals(testBucket, requests.get(0).bucket());
+        assertEquals(testBucket, requests.get(1).bucket());
+        assertTrue(requests.get(0).key().startsWith(avatarFolder + "/"));
 
         assertNotNull(result.getFirst().getFileId());
         assertNotNull(result.getFirst().getSmallFileId());
 
-        String largeImageKey = requests.get(0).getKey();
+        String largeImageKey = requests.get(0).key();
         String expectedUrl = s3Endpoint + downloadPath + URLEncoder.encode(largeImageKey, StandardCharsets.UTF_8);
         assertEquals(expectedUrl, result.getSecond());
     }
@@ -102,7 +104,10 @@ public class AvatarS3ServiceTest {
 
         avatarS3Service.deleteAvatar(testKey);
 
-        verify(s3Client).deleteObject(testBucket, testKey);
+        ArgumentCaptor<DeleteObjectRequest> deleteRequestCaptor = ArgumentCaptor.forClass(DeleteObjectRequest.class);
+        verify(s3Client).deleteObject(deleteRequestCaptor.capture());
+        assertEquals(testBucket, deleteRequestCaptor.getValue().bucket());
+        assertEquals(testKey, deleteRequestCaptor.getValue().key());
     }
 
     private ImageProcessor.ImageData mockImageData() {

@@ -1,8 +1,10 @@
 package school.faang.user_service.service.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +23,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Service
 public class AvatarS3Service {
-    private final AmazonS3 s3Client;
+    private final S3Client s3Client;
     private final ImageProcessor imageProcessor;
 
     @Value("${image.avatar.sizes.large}")
@@ -47,20 +49,16 @@ public class AvatarS3Service {
             ImageProcessor.ImageData largeImageData = imageProcessor.resizeImage(file, largeAvatarMaxSize);
             ImageProcessor.ImageData smallImageData = imageProcessor.resizeImage(file, smallAvatarMaxSize);
 
-            ObjectMetadata largeImageMetadata = buildObjectMetadata(largeImageData);
-            ObjectMetadata smallImageMetadata = buildObjectMetadata(smallImageData);
-
             String largeImageKey = String.format("%s/%s", avatarFolderName, UUID.randomUUID());
             String smallImageKey = String.format("%s/%s", avatarFolderName, UUID.randomUUID());
 
-            PutObjectRequest largeImagePutObjectRequest = new PutObjectRequest(
-                    bucketName, largeImageKey, largeImageData.getInputStream(), largeImageMetadata);
+            PutObjectRequest largeImagePutObjectRequest = buildPutObjectRequest(largeImageKey, largeImageData);
+            PutObjectRequest smallImagePutObjectRequest = buildPutObjectRequest(smallImageKey, smallImageData);
 
-            PutObjectRequest smallImagePutObjectRequest = new PutObjectRequest(
-                    bucketName, smallImageKey, smallImageData.getInputStream(), smallImageMetadata);
-
-            s3Client.putObject(largeImagePutObjectRequest);
-            s3Client.putObject(smallImagePutObjectRequest);
+            s3Client.putObject(largeImagePutObjectRequest,
+                    RequestBody.fromInputStream(largeImageData.getInputStream(), largeImageData.getContentLength()));
+            s3Client.putObject(smallImagePutObjectRequest,
+                    RequestBody.fromInputStream(smallImageData.getInputStream(), smallImageData.getContentLength()));
 
             UserProfilePic userProfilePic = new UserProfilePic(largeImageKey, smallImageKey);
 
@@ -82,17 +80,22 @@ public class AvatarS3Service {
 
     public void deleteAvatar(String imageKey) {
         try {
-            s3Client.deleteObject(bucketName, imageKey);
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(imageKey)
+                    .build());
         } catch (Exception e) {
             log.error(e.getMessage());
             throw new FileException(e.getMessage());
         }
     }
 
-    private ObjectMetadata buildObjectMetadata(ImageProcessor.ImageData imageData) {
-        ObjectMetadata imageMetadata = new ObjectMetadata();
-        imageMetadata.setContentLength(imageData.getContentLength());
-        imageMetadata.setContentType(imageData.getContentType());
-        return imageMetadata;
+    private PutObjectRequest buildPutObjectRequest(String imageKey, ImageProcessor.ImageData imageData) {
+        return PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(imageKey)
+                .contentLength(imageData.getContentLength())
+                .contentType(imageData.getContentType())
+                .build();
     }
 }
