@@ -20,7 +20,7 @@ import school.faang.user_service.event.AnalyticsProfileViewEvent;
 import school.faang.user_service.publisher.AnalyticsProfileViewPublisher;
 import school.faang.user_service.service.user.UserService;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -71,7 +71,7 @@ class AnalyticsProfileViewPublisherTest {
         AnalyticsProfileViewEvent event = AnalyticsProfileViewEvent.builder()
                 .userId(123L)
                 .viewerUserId(456L)
-                .timestamp(LocalDateTime.now())
+                .timestamp(Instant.now())
                 .build();
 
         analyticsProfileViewPublisher.publishEvent(user);
@@ -85,6 +85,7 @@ class AnalyticsProfileViewPublisherTest {
         assertNotNull(capturedEvent);
         assertEquals(event.getUserId(), capturedEvent.getUserId());
         assertEquals(event.getViewerUserId(), capturedEvent.getViewerUserId());
+        assertNotNull(capturedEvent.getEventId());
         assertNotNull(capturedEvent.getTimestamp());
     }
 

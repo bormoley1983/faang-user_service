@@ -110,6 +110,8 @@ public class AnalyticsProfileViewPublisherIT {
 
                     assertEquals(expectedEvent.getUserId(), actualEvent.getUserId());
                     assertEquals(expectedEvent.getViewerUserId(), actualEvent.getViewerUserId());
+                    assertNotNull(actualEvent.getEventId());
+                    assertNotNull(actualEvent.getTimestamp());
                 });
         System.out.println();
     }

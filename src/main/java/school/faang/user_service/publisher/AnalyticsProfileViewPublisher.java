@@ -12,7 +12,8 @@ import school.faang.user_service.entity.User;
 import school.faang.user_service.event.AnalyticsProfileViewEvent;
 import school.faang.user_service.exception.EventSerializationException;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.UUID;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -33,15 +34,16 @@ public class AnalyticsProfileViewPublisher implements EventPublisher {
         if (!userId.equals(viewerUserId)) {
             try {
                 AnalyticsProfileViewEvent analyticsProfileViewEvent = AnalyticsProfileViewEvent.builder()
+                        .eventId(UUID.randomUUID().toString())
                         .userId(userId)
                         .viewerUserId(viewerUserId)
-                        .timestamp(LocalDateTime.now())
+                        .timestamp(Instant.now())
                         .build();
                 String json = objectMapper.writeValueAsString(analyticsProfileViewEvent);
                 kafkaTemplate.send(analyticsProfileViewTopic, json);
             } catch (JsonProcessingException e) {
-                log.error("Error parsing event: {}", user, e);
-                throw new EventSerializationException(e.getMessage());
+                log.error("Unable to serialize analytics profile-view event for receiverId={}", userId, e);
+                throw new EventSerializationException("Unable to serialize analytics profile-view event");
             }
         }
     }
