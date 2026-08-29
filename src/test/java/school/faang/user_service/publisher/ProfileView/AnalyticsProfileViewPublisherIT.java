@@ -10,7 +10,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.jdbc.Sql;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.ConfluentKafkaContainer;
@@ -58,8 +58,8 @@ public class AnalyticsProfileViewPublisherIT {
 
     @Container
     @SuppressWarnings("resource")
-    protected static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER = 
-        new PostgreSQLContainer<>(POSTGRES_IMAGE)
+    protected static final PostgreSQLContainer POSTGRESQL_CONTAINER =
+        new PostgreSQLContainer(POSTGRES_IMAGE)
             .withNetwork(testNetwork)
             .withNetworkAliases("test-postgres")		        
             .withDatabaseName("testdb")

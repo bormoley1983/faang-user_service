@@ -17,7 +17,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.jdbc.Sql;
 import org.testcontainers.kafka.ConfluentKafkaContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -32,7 +32,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.context.jdbc.Sql.ExecutionPhase.AFTER_TEST_METHOD;
 import static org.springframework.test.context.jdbc.Sql.ExecutionPhase.BEFORE_TEST_METHOD;
-import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
+import static org.awaitility.Awaitility.await;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -73,8 +73,8 @@ public class UserBanIntegrationTest {
 
     @Container
     @SuppressWarnings("resource")
-    protected static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER = 
-        new PostgreSQLContainer<>(POSTGRES_IMAGE)
+    protected static final PostgreSQLContainer POSTGRESQL_CONTAINER =
+        new PostgreSQLContainer(POSTGRES_IMAGE)
             .withNetwork(testNetwork)
             .withNetworkAliases("test-postgres")		        
             .withDatabaseName("testdb")
