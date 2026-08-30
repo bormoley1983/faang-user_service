@@ -47,7 +47,7 @@ project-service:
 
 payment-service:
   host: localhost
-  port: 9080
+  port: 8082
 
 swagger:
   api-docs:
