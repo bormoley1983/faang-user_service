@@ -3,9 +3,9 @@ spring:
     active: dev # prod
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/postgres
-    username: user
-    password: password
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/faang}
+    username: ${DATABASE_USERNAME:user}
+    password: ${DATABASE_PASSWORD}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -59,18 +59,18 @@ swagger:
     tags-sorter: alpha
 
 s3:
-  endpoint: http://localhost:9000
-  region: us-east-1
-  accessKey: user
-  secretKey: password
+  endpoint: ${S3_ENDPOINT:http://localhost:9000}
+  region: ${S3_REGION:us-east-1}
+  accessKey: ${S3_ACCESS_KEY:minioadmin}
+  secretKey: ${S3_SECRET_KEY:minioadmin}
   download-path: /api/v1/buckets/corpbucket/objects/download?preview=true&prefix=
-  bucketName: corpbucket
+  bucketName: ${S3_BUCKET_NAME:corpbucket}
 
 dicebear:
   apiUrl: https://api.dicebear.com/9.x
   connectionTimeoutSeconds: 10
   readTimeoutSeconds: 10
-  token: YOUR_API_KEY
+  token: ${DICEBEAR_API_TOKEN:}
 
 avatar:
   bucketName: user-avatars

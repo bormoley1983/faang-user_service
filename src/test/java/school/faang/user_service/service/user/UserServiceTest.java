@@ -226,7 +226,7 @@ public class UserServiceTest {
     }
 
     @Test
-    void downloadAvatar_WhenSizeIsLarge_ShouldUseSmallFileId() {
+    void downloadAvatar_WhenSizeIsSmall_ShouldUseSmallFileId() {
         Long userId = 1L;
         User user = new User();
         UserProfilePic profile = new UserProfilePic("large-key", "small-key");
@@ -237,9 +237,27 @@ public class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(avatarS3Service.downloadAvatar("small-key")).thenReturn(expectedUrl);
 
-        String result = userService.downloadAvatar("large");
+        String result = userService.downloadAvatar("small");
 
         verify(avatarS3Service).downloadAvatar("small-key");
+        assertThat(result).isEqualTo(expectedUrl);
+    }
+
+    @Test
+    void downloadAvatar_WhenSizeIsLarge_ShouldUseLargeFileId() {
+        Long userId = 1L;
+        User user = new User();
+        UserProfilePic profile = new UserProfilePic("large-key", "small-key");
+        user.setUserProfilePic(profile);
+        String expectedUrl = "expected-url";
+
+        when(userContext.getUserId()).thenReturn(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(avatarS3Service.downloadAvatar("large-key")).thenReturn(expectedUrl);
+
+        String result = userService.downloadAvatar("large");
+
+        verify(avatarS3Service).downloadAvatar("large-key");
         assertThat(result).isEqualTo(expectedUrl);
     }
 

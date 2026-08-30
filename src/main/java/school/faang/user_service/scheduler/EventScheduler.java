@@ -50,12 +50,20 @@ public class EventScheduler {
         for (EventStartEventNotificationConfig.Interval interval : intervals) {
             LocalDateTime windowStart = now.plusMinutes(interval.getTime());
             LocalDateTime windowEnd = now.plusMinutes(interval.getTime() * 2L);
-            scheduleNotificationsForTimeFrame(windowStart, windowEnd, interval.getMessage(), intervals, now);
+            scheduleNotificationsForTimeFrame(
+                    windowStart,
+                    windowEnd,
+                    interval.getMessage(),
+                    interval.getTime(),
+                    intervals,
+                    now
+            );
         }
     }
 
     private void scheduleNotificationsForTimeFrame(LocalDateTime windowStart, LocalDateTime windowEnd,
                                                    String message,
+                                                   int intervalMinutes,
                                                    List<EventStartEventNotificationConfig.Interval> allIntervals,
                                                    LocalDateTime now) {
         List<Event> events = eventService.getEventsStartingAt(windowStart, windowEnd);
@@ -63,11 +71,17 @@ public class EventScheduler {
         for (Event event : events) {
             // Skip events already covered by a larger interval processed earlier in this run.
             boolean coveredByLargerInterval = allIntervals.stream()
-                    .filter(i -> i.getTime() > Duration.between(now, windowStart).toMinutes())
+                    .filter(i -> i.getTime() > intervalMinutes)
                     .anyMatch(i -> isWithinWindow(event.getStartDate(),
                             now.plusMinutes(i.getTime()),
                             now.plusMinutes(i.getTime() * 2L)));
             if (coveredByLargerInterval) {
+                continue;
+            }
+
+            if (!eventService.claimEventNotification(event.getId(), intervalMinutes)) {
+                log.debug("Notification for event {} at interval {} min already claimed; skipping",
+                        event.getId(), intervalMinutes);
                 continue;
             }
 

@@ -51,6 +51,7 @@ public class EventSchedulerUnitTest {
 
         when(eventService.getEventsStartingAt(any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(List.of(event));
+        when(eventService.claimEventNotification(any(Long.class), any(Integer.class))).thenReturn(true);
 
         eventScheduler.scheduleEventNotifications();
 

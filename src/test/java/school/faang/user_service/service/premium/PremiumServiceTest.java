@@ -15,19 +15,21 @@ import school.faang.user_service.dto.payment.Currency;
 import school.faang.user_service.dto.payment.PaymentRequest;
 import school.faang.user_service.dto.payment.PaymentResponse;
 import school.faang.user_service.dto.payment.PaymentStatus;
-import school.faang.user_service.entity.User;
 import school.faang.user_service.entity.premium.Premium;
 import school.faang.user_service.entity.premium.PremiumPeriod;
+import school.faang.user_service.entity.premium.PremiumPurchaseIntent;
+import school.faang.user_service.entity.premium.PremiumPurchaseStatus;
 import school.faang.user_service.exception.PaymentFailedException;
 import school.faang.user_service.repository.UserRepository;
 import school.faang.user_service.repository.premium.PremiumRepository;
 
 import java.math.BigDecimal;
 import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,73 +49,79 @@ public class PremiumServiceTest {
     @Mock
     private PaymentServiceClient paymentServiceClient;
 
+    @Mock
+    private PremiumIntentService premiumIntentService;
+
     @Captor
     private ArgumentCaptor<Premium> premiumArgumentCaptor;
 
     private final long userId = 1;
     private final PremiumPeriod premiumPeriod = PremiumPeriod.MONTH;
+    private final UUID idempotencyKey = UUID.randomUUID();
 
     @Test
     public void testPremiumExistByUserId() {
-        User user = User.builder()
-                .id(userId)
-                .build();
-
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.ofNullable(user));
-
-        when(premiumRepository.existsByUserId(userId))
-                .thenReturn(true);
+        when(premiumIntentService.createOrLoad(userId, premiumPeriod, idempotencyKey))
+                .thenThrow(new IllegalStateException("User with id " + userId + " already has a premium subscription."));
 
         assertThrows(IllegalStateException.class,
-                () -> premiumService.buyPremium(userId, premiumPeriod));
+                () -> premiumService.buyPremium(userId, premiumPeriod, idempotencyKey));
     }
 
     @Test
     public void testPaymentFailed() {
         Pair<PaymentRequest, ResponseEntity<PaymentResponse>> paymentPair = setUpPaymentRequestAndResponse(false);
-        User user = User.builder()
-                .id(userId)
-                .build();
+        PremiumPurchaseIntent intent = pendingIntent();
 
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.ofNullable(user));
+        when(premiumIntentService.createOrLoad(userId, premiumPeriod, idempotencyKey))
+                .thenReturn(intent);
 
         when(paymentServiceClient.sendPayment(any(PaymentRequest.class)))
                 .thenReturn(paymentPair.getSecond());
 
         assertThrows(PaymentFailedException.class,
-                () -> premiumService.buyPremium(userId, premiumPeriod));
+                () -> premiumService.buyPremium(userId, premiumPeriod, idempotencyKey));
     }
 
     @Test
     public void testPremiumFindByUserId() {
-        // Pair<PaymentRequest, ResponseEntity<PaymentResponse>> paymentPair = setUpPaymentRequestAndResponse(false);
-
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.empty());
+        when(premiumIntentService.createOrLoad(userId, premiumPeriod, idempotencyKey))
+                .thenThrow(new NoSuchElementException());
 
         assertThrows(NoSuchElementException.class,
-                () -> premiumService.buyPremium(userId, premiumPeriod));
+                () -> premiumService.buyPremium(userId, premiumPeriod, idempotencyKey));
     }
 
     @Test
     public void testSavePremium() {
         Pair<PaymentRequest, ResponseEntity<PaymentResponse>> paymentPair = setUpPaymentRequestAndResponse(true);
-        User user = User.builder()
-                .id(1L)
-                .build();
+        PremiumPurchaseIntent intent = pendingIntent();
 
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.ofNullable(user));
+        when(premiumIntentService.createOrLoad(userId, premiumPeriod, idempotencyKey))
+                .thenReturn(intent);
 
         when(paymentServiceClient.sendPayment(any(PaymentRequest.class)))
                 .thenReturn(paymentPair.getSecond());
 
-        premiumService.buyPremium(userId, premiumPeriod);
+        Premium savedPremium = Premium.builder().build();
+        when(premiumIntentService.complete(eq(intent.getId()), any(PaymentResponse.class)))
+                .thenReturn(savedPremium);
 
-        verify(premiumRepository, times(1))
-                .save(premiumArgumentCaptor.capture());
+        premiumService.buyPremium(userId, premiumPeriod, idempotencyKey);
+
+        verify(premiumIntentService, times(1))
+                .complete(eq(intent.getId()), any(PaymentResponse.class));
+    }
+
+    private PremiumPurchaseIntent pendingIntent() {
+        PremiumPurchaseIntent intent = new PremiumPurchaseIntent();
+        intent.setId(1L);
+        intent.setUserId(userId);
+        intent.setPremiumPeriod(premiumPeriod);
+        intent.setPaymentNumber(12345L);
+        intent.setAmount(BigDecimal.valueOf(premiumPeriod.getPrice()));
+        intent.setStatus(PremiumPurchaseStatus.PENDING);
+        return intent;
     }
 
     private Pair<PaymentRequest, ResponseEntity<PaymentResponse>> setUpPaymentRequestAndResponse(boolean isSuccessResponse) {

@@ -1,6 +1,7 @@
 package school.faang.user_service.repository.event;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import school.faang.user_service.entity.event.Event;
 
@@ -27,6 +28,14 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             WHERE e.start_date >= :startTime AND e.start_date < :doubleStartTime
             """)
     List<Event> findEventsByStartTime(LocalDateTime startTime, LocalDateTime doubleStartTime);
+
+    @Modifying
+    @Query(nativeQuery = true, value = """
+            INSERT INTO event_notification_sent (event_id, interval_minutes)
+            VALUES (:eventId, :intervalMinutes)
+            ON CONFLICT (event_id, interval_minutes) DO NOTHING
+            """)
+    int claimEventNotification(long eventId, int intervalMinutes);
 
     @Query(nativeQuery = true, value = """
             WITH to_delete AS (

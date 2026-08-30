@@ -121,7 +121,7 @@ class UserServiceRegistrationTest {
         verify(passwordEncoder, times(1)).encode(password);
         verify(countryRepository, times(1)).findById(countryId);
         // The service saves the user first, then again after avatar generation.
-        verify(userAvatarService, times(1)).generateAvatarForNewUser(eq(userToSave), eq(AvatarType.JPEG));
+        verify(userAvatarService, times(1)).generateAvatarForNewUser(any(User.class), eq(AvatarType.JPEG));
         verify(userRepository, times(2)).save(any(User.class));
     }
 

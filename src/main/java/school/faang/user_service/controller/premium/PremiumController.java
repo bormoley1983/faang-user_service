@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestHeader;
 import school.faang.user_service.config.context.UserContext;
 import school.faang.user_service.dto.premium.PremiumDto;
 import school.faang.user_service.entity.premium.Premium;
@@ -17,6 +18,7 @@ import school.faang.user_service.mapper.premium.PremiumMapper;
 import school.faang.user_service.service.premium.PremiumService;
 
 import java.util.List;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @RequestMapping("/premium")
@@ -29,10 +31,11 @@ public class PremiumController {
 
     @PostMapping("/buy/{days}")
     @ResponseStatus(HttpStatus.CREATED)
-    public PremiumDto buyPremium(@PathVariable int days) {
+    public PremiumDto buyPremium(@PathVariable int days,
+                                 @RequestHeader("Idempotency-Key") UUID idempotencyKey) {
         long userId = userContext.getUserId();
         PremiumPeriod premiumPeriod = PremiumPeriod.fromDays(days);
-        Premium premium = premiumService.buyPremium(userId, premiumPeriod);
+        Premium premium = premiumService.buyPremium(userId, premiumPeriod, idempotencyKey);
         return premiumMapper.toDto(premium);
     }
 

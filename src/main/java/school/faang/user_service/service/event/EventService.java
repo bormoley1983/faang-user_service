@@ -48,9 +48,11 @@ public class EventService {
 
     public List<Event> getEventsByFilter(EventFilterDto filters) {
         Stream<Event> events = eventRepository.findAll().stream();
-        for (EventFilter filter : eventFilters) {
-            if (filter.isApplicable(filters)) {
-                events = filter.apply(events, filters);
+        if (eventFilters != null && !eventFilters.isEmpty()) {
+            for (EventFilter filter : eventFilters) {
+                if (filter.isApplicable(filters)) {
+                    events = filter.apply(events, filters);
+                }
             }
         }
 
@@ -103,6 +105,11 @@ public class EventService {
 
     public List<Event> getEventsStartingAt(LocalDateTime startTime, LocalDateTime doubleStartTime) {
         return eventRepository.findEventsByStartTime(startTime, doubleStartTime);
+    }
+
+    @Transactional
+    public boolean claimEventNotification(long eventId, int intervalMinutes) {
+        return eventRepository.claimEventNotification(eventId, intervalMinutes) == 1;
     }
 
     // private boolean userHasRequiredSkills(Long ownerId, List<Long> requiredSkills) {

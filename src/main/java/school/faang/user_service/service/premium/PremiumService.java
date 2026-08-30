@@ -11,14 +11,13 @@ import school.faang.user_service.dto.payment.Currency;
 import school.faang.user_service.dto.payment.PaymentRequest;
 import school.faang.user_service.dto.payment.PaymentResponse;
 import school.faang.user_service.dto.payment.PaymentStatus;
-import school.faang.user_service.entity.User;
 import school.faang.user_service.entity.premium.Premium;
 import school.faang.user_service.entity.premium.PremiumPeriod;
+import school.faang.user_service.entity.premium.PremiumPurchaseIntent;
+import school.faang.user_service.entity.premium.PremiumPurchaseStatus;
 import school.faang.user_service.exception.PaymentFailedException;
-import school.faang.user_service.repository.UserRepository;
 import school.faang.user_service.repository.premium.PremiumRepository;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -28,25 +27,19 @@ import java.util.UUID;
 @Service
 public class PremiumService {
     private final PremiumRepository premiumRepository;
-    private final UserRepository userRepository;
     private final PaymentServiceClient paymentServiceClient;
+    private final PremiumIntentService premiumIntentService;
 
-    @Transactional
-    public Premium buyPremium(long userId, PremiumPeriod premiumPeriod) {
-        User user = userRepository.findById(userId).orElseThrow();
-        if (premiumRepository.existsByUserId(user.getId())) {
-            throw new IllegalStateException("User with id " + userId + " already has a premium subscription.");
+    public Premium buyPremium(long userId, PremiumPeriod premiumPeriod, UUID idempotencyKey) {
+        if (idempotencyKey == null) {
+            throw new IllegalArgumentException("Idempotency-Key is required");
         }
-
-        makePayment(premiumPeriod);
-
-        Premium premium = Premium.builder()
-                .user(user)
-                .startDate(LocalDateTime.now())
-                .endDate(LocalDateTime.now().plusDays(premiumPeriod.getDays()))
-                .build();
-
-        return premiumRepository.save(premium);
+        PremiumPurchaseIntent intent = premiumIntentService.createOrLoad(userId, premiumPeriod, idempotencyKey);
+        if (intent.getStatus() == PremiumPurchaseStatus.COMPLETED) {
+            return intent.getPremium();
+        }
+        PaymentResponse response = makePayment(intent);
+        return premiumIntentService.complete(intent.getId(), response);
     }
 
     @Transactional(readOnly = true)
@@ -57,14 +50,8 @@ public class PremiumService {
                 .toList();
     }
 
-    private void makePayment(PremiumPeriod premiumPeriod) {
-        // Use a positive payment number: getLeastSignificantBits() can be negative.
-        long paymentNumber = Math.abs(UUID.randomUUID().getLeastSignificantBits());
-        if (paymentNumber == 0) {
-            paymentNumber = 1;
-        }
-        PaymentRequest request = new PaymentRequest(paymentNumber,
-                BigDecimal.valueOf(premiumPeriod.getPrice()), Currency.USD);
+    private PaymentResponse makePayment(PremiumPurchaseIntent intent) {
+        PaymentRequest request = new PaymentRequest(intent.getPaymentNumber(), intent.getAmount(), Currency.USD);
 
         ResponseEntity<PaymentResponse> response = paymentServiceClient.sendPayment(request);
 
@@ -72,7 +59,7 @@ public class PremiumService {
             String message = response.getBody() != null && response.getBody().message() != null
                     ? response.getBody().message()
                     : "Payment service returned no body with status " + response.getStatusCode();
-            log.error("Payment failed for period {} with status {}", premiumPeriod, response.getStatusCode());
+            log.error("Payment failed for premium intent {} with status {}", intent.getId(), response.getStatusCode());
             throw new PaymentFailedException(message);
         }
 
@@ -81,8 +68,12 @@ public class PremiumService {
             String message = response.getBody().message() != null
                     ? response.getBody().message()
                     : "Payment status is " + response.getBody().status();
-            log.error("Payment for period {} did not succeed: {}", premiumPeriod, response.getBody().status());
+            log.error("Payment for premium intent {} did not succeed: {}", intent.getId(), response.getBody().status());
             throw new PaymentFailedException(message);
         }
+        if (response.getBody().paymentNumber() != intent.getPaymentNumber()) {
+            throw new PaymentFailedException("Payment response number does not match premium purchase intent");
+        }
+        return response.getBody();
     }
 }

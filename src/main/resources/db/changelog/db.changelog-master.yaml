@@ -19,3 +19,7 @@ databaseChangeLog:
       file: db/changelog/changeset/user_V009__add_telegram_column.sql
   - include:
       file: db/changelog/changeset/user_V010__add_unique_constraints.sql
+  - include:
+      file: db/changelog/changeset/user_V011__premium_purchase_intent.sql
+  - include:
+      file: db/changelog/changeset/user_V012__event_notification_sent.sql
