@@ -30,6 +30,8 @@ repositories {
     mavenCentral()
 }
 
+val mockitoAgent = configurations.create("mockitoAgent")
+
 dependencyManagement {
     imports {
         mavenBom("org.springframework.cloud:spring-cloud-dependencies:$springCloudVersion")
@@ -114,6 +116,7 @@ dependencies {
      * Kafka Events
      */
     implementation("io.github.narol01:kafkaEvent:1.0.3")
+    mockitoAgent("org.mockito:mockito-core") { isTransitive = false }
 }
 
 jsonSchema2Pojo {
@@ -125,6 +128,10 @@ jsonSchema2Pojo {
 
 tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.add("-parameters")
+}
+
+tasks.withType<Test>().configureEach {
+    jvmArgs("-Xshare:off", "-javaagent:${mockitoAgent.asPath}")
 }
 
 tasks.bootJar {
