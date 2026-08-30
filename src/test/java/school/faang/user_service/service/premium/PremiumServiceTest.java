@@ -24,14 +24,19 @@ import school.faang.user_service.repository.UserRepository;
 import school.faang.user_service.repository.premium.PremiumRepository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,6 +63,33 @@ public class PremiumServiceTest {
     private final long userId = 1;
     private final PremiumPeriod premiumPeriod = PremiumPeriod.MONTH;
     private final UUID idempotencyKey = UUID.randomUUID();
+
+    @Test
+    void buyPremium_rejectsMissingIdempotencyKey() {
+        assertThrows(IllegalArgumentException.class,
+                () -> premiumService.buyPremium(userId, premiumPeriod, null));
+    }
+
+    @Test
+    void buyPremium_returnsPremiumFromCompletedIntentWithoutChargingAgain() {
+        Premium premium = Premium.builder().build();
+        PremiumPurchaseIntent intent = pendingIntent();
+        intent.setStatus(PremiumPurchaseStatus.COMPLETED);
+        intent.setPremium(premium);
+        when(premiumIntentService.createOrLoad(userId, premiumPeriod, idempotencyKey)).thenReturn(intent);
+
+        assertSame(premium, premiumService.buyPremium(userId, premiumPeriod, idempotencyKey));
+        verifyNoInteractions(paymentServiceClient);
+    }
+
+    @Test
+    void getPremiumUsers_returnsIdsFromActivePremiums() {
+        Premium first = Premium.builder().user(school.faang.user_service.entity.User.builder().id(3L).build()).build();
+        Premium second = Premium.builder().user(school.faang.user_service.entity.User.builder().id(7L).build()).build();
+        when(premiumRepository.findByEndDateAfter(any(LocalDateTime.class))).thenReturn(List.of(first, second));
+
+        assertEquals(List.of(3L, 7L), premiumService.getPremiumUsers());
+    }
 
     @Test
     public void testPremiumExistByUserId() {

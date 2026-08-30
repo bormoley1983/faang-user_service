@@ -5,12 +5,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import school.faang.user_service.dto.avatar.AvatarType;
 import school.faang.user_service.entity.User;
 import school.faang.user_service.entity.UserProfilePic;
 import school.faang.user_service.service.external.DiceBearService;
 import school.faang.user_service.service.external.S3Service;
 
+import java.net.URL;
 import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,6 +37,33 @@ class UserAvatarServiceTest {
     private UserAvatarService userAvatarService;
 
     // private final String bucketName = "test-bucket";
+
+    @Test
+    void generateAvatarForNewUser_uploadsAvatarAndUpdatesUser() throws Exception {
+        ReflectionTestUtils.setField(userAvatarService, "bucketName", "avatars");
+        User user = User.builder().id(1L).build();
+        byte[] avatar = {1, 2, 3};
+        URL url = new URL("https://example.com/avatar.jpeg");
+        when(diceBearService.generateAvatar(anyString(), eq(AvatarType.JPEG))).thenReturn(avatar);
+        when(s3Service.getUnexpiredUrl(eq("avatars"), anyString())).thenReturn(url);
+
+        userAvatarService.generateAvatarForNewUser(user, AvatarType.JPEG);
+
+        verify(s3Service).uploadToBucket(eq(user.getUserProfilePic().getFileId()), eq(avatar), eq(AvatarType.JPEG.getContentType()));
+        assertEquals(url.toString(), user.getAboutMe());
+    }
+
+    @Test
+    void getUserAvatar_returnsPresignedUrl() throws Exception {
+        ReflectionTestUtils.setField(userAvatarService, "bucketName", "avatars");
+        UserProfilePic profilePic = new UserProfilePic();
+        profilePic.setFileId("avatar.png");
+        User user = User.builder().id(1L).userProfilePic(profilePic).build();
+        URL expected = new URL("https://example.com/avatar.png");
+        when(s3Service.getUnexpiredUrl("avatars", "avatar.png")).thenReturn(expected);
+
+        assertEquals(expected, userAvatarService.getUserAvatar(user));
+    }
 
     @Test
     void generateAvatarForNewUser_ShouldThrowException_WhenAvatarGenerationFails() {

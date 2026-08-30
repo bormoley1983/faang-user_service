@@ -16,12 +16,14 @@ import school.faang.user_service.filter.goalInvitation.InvitationFilter;
 import school.faang.user_service.filter.goalInvitation.InvitationInvitedNameFilter;
 import school.faang.user_service.filter.goalInvitation.InvitationInviterNameFilter;
 import school.faang.user_service.filter.goalInvitation.InvitationInviterUserFilter;
+import school.faang.user_service.mapper.GoalMapper;
 import school.faang.user_service.repository.goal.GoalInvitationRepository;
 import school.faang.user_service.service.goal.GoalInvitationService;
 import school.faang.user_service.service.goal.GoalService;
 import school.faang.user_service.service.user.UserService;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -45,6 +47,9 @@ public class GoalInvitationServiceTest {
 
     @Mock
     private UserService userService;
+
+    @Mock
+    private GoalMapper goalMapper;
 
     @Mock
     private List<InvitationFilter> invitationFilters;
@@ -213,6 +218,51 @@ public class GoalInvitationServiceTest {
 
         assertThrows(IllegalArgumentException.class, () ->
                 goalInvitationService.rejectGoalInvitation(nonExistentId, 2L));
+    }
+
+    @Test
+    void acceptGoalInvitation_updatesBothSidesAndInvitation() {
+        long invitationId = 10L;
+        User acceptingUser = User.builder().id(2L).goals(new ArrayList<>()).build();
+        Goal invitedGoal = Goal.builder()
+                .id(5L)
+                .users(new ArrayList<>())
+                .skillsToAchieve(new ArrayList<>())
+                .build();
+        GoalInvitation invitation = GoalInvitation.builder()
+                .id(invitationId)
+                .invited(acceptingUser)
+                .goal(invitedGoal)
+                .status(RequestStatus.PENDING)
+                .build();
+        when(goalInvitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
+        when(goalMapper.mapSkills(invitedGoal.getSkillsToAchieve())).thenReturn(List.of());
+        when(goalInvitationRepository.save(invitation)).thenReturn(invitation);
+
+        GoalInvitation result = goalInvitationService.acceptGoalInvitation(invitationId, acceptingUser.getId());
+
+        assertEquals(RequestStatus.ACCEPTED, result.getStatus());
+        assertEquals(List.of(invitedGoal), acceptingUser.getGoals());
+        assertEquals(List.of(acceptingUser), invitedGoal.getUsers());
+        verify(userService).updateUser(acceptingUser);
+        verify(goalService).updateGoal(invitedGoal.getId(), invitedGoal, null, List.of());
+    }
+
+    @Test
+    void rejectGoalInvitation_marksInvitationRejected() {
+        long invitationId = 11L;
+        GoalInvitation invitation = GoalInvitation.builder()
+                .id(invitationId)
+                .invited(invited)
+                .status(RequestStatus.PENDING)
+                .build();
+        when(goalInvitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
+        when(goalInvitationRepository.save(invitation)).thenReturn(invitation);
+
+        GoalInvitation result = goalInvitationService.rejectGoalInvitation(invitationId, invited.getId());
+
+        assertEquals(RequestStatus.REJECTED, result.getStatus());
+        verify(goalInvitationRepository).save(invitation);
     }
 
 
