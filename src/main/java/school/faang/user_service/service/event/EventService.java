@@ -48,9 +48,11 @@ public class EventService {
 
     public List<Event> getEventsByFilter(EventFilterDto filters) {
         Stream<Event> events = eventRepository.findAll().stream();
-        eventFilters.stream()
-                .filter(filter -> filter.isApplicable(filters))
-                .forEach(filter -> filter.apply(events, filters));
+        for (EventFilter filter : eventFilters) {
+            if (filter.isApplicable(filters)) {
+                events = filter.apply(events, filters);
+            }
+        }
 
         return events.toList();
     }
@@ -64,6 +66,7 @@ public class EventService {
         eventRepository.deleteById(id);
     }
 
+    @Transactional
     public Event updateEvent(Event event) {
         if (!ownerHasRequiredSkills(event)) {
             throw new DataValidationException("User does not have required skills to create the event");
@@ -71,6 +74,15 @@ public class EventService {
 
         Event existingEvent = eventRepository.findById(event.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Event does not exist"));
+
+        existingEvent.setTitle(event.getTitle());
+        existingEvent.setDescription(event.getDescription());
+        existingEvent.setStartDate(event.getStartDate());
+        existingEvent.setEndDate(event.getEndDate());
+        existingEvent.setLocation(event.getLocation());
+        existingEvent.setMaxAttendees(event.getMaxAttendees());
+        existingEvent.setType(event.getType());
+        existingEvent.setStatus(event.getStatus());
         existingEvent.setOwner(userRepository.findById(event.getOwner().getId())
                 .orElseThrow(() -> new IllegalArgumentException("User does not exist")));
         existingEvent.setRelatedSkills(event.getRelatedSkills().stream()

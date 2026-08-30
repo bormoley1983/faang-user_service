@@ -125,19 +125,13 @@ public class UserServiceIT {
 
     @Test
     void testGetUsers_Success() throws Exception {
-        List<UserDto> userDtoList = List.of(
-                UserDto.builder()
-                        .id(1L)
-                        .build(),
-                UserDto.builder()
-                        .id(2L)
-                        .build()
-        );
+        // USR-06: the endpoint now accepts plain ids, not full user objects.
+        List<Long> userIds = List.of(1L, 2L);
 
         MvcResult mvcResult = mockMvc.perform(
                         MockMvcRequestBuilders.post("/api/v1/users/list")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsBytes(userDtoList))
+                                .content(objectMapper.writeValueAsBytes(userIds))
                 ).andExpect(status().isOk())
                 .andReturn();
 
@@ -145,26 +139,21 @@ public class UserServiceIT {
                 mvcResult.getResponse().getContentAsString(),
                 new TypeReference<List<UserDto>>() {});
 
-        assertEquals(userDtoList.size(), actualList.size());
+        assertEquals(userIds.size(), actualList.size());
         assertNotNull(actualList.get(0));
         assertNotNull(actualList.get(1));
-        assertEquals(userDtoList.get(0).getId(), actualList.get(0).getId());
-        assertEquals(userDtoList.get(1).getId(), actualList.get(1).getId());
+        assertEquals(userIds.get(0), actualList.get(0).getId());
+        assertEquals(userIds.get(1), actualList.get(1).getId());
     }
 
     @Test
     void testGetUsers_UserNotFound() throws Exception{
-        Long nonExistentUserId = 3L;
-        List<UserDto> userDtoList = List.of(
-                UserDto.builder()
-                        .id(nonExistentUserId)
-                        .build()
-        );
+        List<Long> userIds = List.of(3L);
 
         MvcResult mvcResult = mockMvc.perform(
                         MockMvcRequestBuilders.post("/api/v1/users/list")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsBytes(userDtoList))
+                                .content(objectMapper.writeValueAsBytes(userIds))
                 ).andExpect(status().is4xxClientError())
                 .andReturn();
 

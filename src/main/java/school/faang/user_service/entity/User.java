@@ -19,8 +19,9 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import school.faang.user_service.entity.contact.Contact;
@@ -35,7 +36,8 @@ import school.faang.user_service.entity.recommendation.Recommendation;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -160,11 +162,12 @@ public class User {
     })
     private UserProfilePic userProfilePic;
 
-    @Enumerated(EnumType.ORDINAL)
+    // USR-21: persist enum names, not ordinals — ordinal values shift when the enum changes.
+    @Enumerated(EnumType.STRING)
     @Column(name = "preference")
     private PreferredContact preference;
 
-    @Enumerated(EnumType.ORDINAL)
+    // USR-22: @Enumerated is meaningless on a relation field; removed.
     @OneToOne(mappedBy = "user")
     private Premium premium;
 }

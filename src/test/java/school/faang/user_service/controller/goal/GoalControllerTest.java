@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import school.faang.user_service.config.context.UserContext;
 import school.faang.user_service.dto.goal.GoalDto;
 import school.faang.user_service.dto.goal.GoalFilterDto;
 import school.faang.user_service.entity.goal.Goal;
@@ -33,12 +34,17 @@ class GoalControllerTest {
     @Mock
     private GoalMapper goalMapper;
 
+    @Mock
+    private UserContext userContext;
+
     @InjectMocks
     private GoalController goalController;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        // controller now reads the acting user from UserContext.
+        when(userContext.getUserId()).thenReturn(1L);
     }
 
     @Test
@@ -66,9 +72,9 @@ class GoalControllerTest {
     void updateGoal_ShouldReturnUpdatedGoal() {
         GoalDto goalDto = new GoalDto();
         Goal goal = new Goal();
-        when(goalService.updateGoal(anyLong(), any(GoalDto.class))).thenReturn(goal);
+        // the controller now passes the acting user id to the service.
+        when(goalService.updateGoal(anyLong(), anyLong(), any(GoalDto.class))).thenReturn(goal);
         when(goalMapper.toDto(any())).thenReturn(goalDto);
-        when(goalMapper.toEntity(any())).thenReturn(goal);
 
         ResponseEntity<GoalDto> response = goalController.updateGoal(1L, goalDto);
 
@@ -79,14 +85,15 @@ class GoalControllerTest {
     @Test
     void updateGoal_ShouldThrowException_WhenServiceThrowsException() {
         GoalDto goalDto = new GoalDto();
-        when(goalService.updateGoal(any(), any(GoalDto.class))).thenThrow(new RuntimeException("Error"));
+        when(goalService.updateGoal(any(), anyLong(), any(GoalDto.class))).thenThrow(new RuntimeException("Error"));
 
         assertThrows(RuntimeException.class, () -> goalController.updateGoal(1L, goalDto));
     }
 
     @Test
     void deleteGoal_ShouldReturnSuccessMessage() {
-        doNothing().when(goalService).deleteGoal(anyLong());
+        // the controller now passes the acting user id to the service.
+        doNothing().when(goalService).deleteGoal(anyLong(), anyLong());
 
         ResponseEntity<String> response = goalController.deleteGoal(1L);
 

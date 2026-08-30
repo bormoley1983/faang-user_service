@@ -46,7 +46,7 @@ public class GoalInvitation {
     private User invited;
 
     @Column(name = "status", nullable = false)
-    @Enumerated(EnumType.ORDINAL)
+    @Enumerated(EnumType.STRING)
     private RequestStatus status;
 
     @CreationTimestamp

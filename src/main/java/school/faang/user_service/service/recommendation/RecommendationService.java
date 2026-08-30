@@ -69,8 +69,11 @@ public class RecommendationService {
 
         skillOfferRepository.deleteAllByRecommendationId(recommendationId);
         updateSkillOffers(recommendation, receiver, author);
-        recommendationRepository.update(
-                author.getId(), receiver.getId(), recommendation.getContent());
+        int updatedRows = recommendationRepository.update(
+                recommendationId, author.getId(), receiver.getId(), recommendation.getContent());
+        if (updatedRows == 0) {
+            throw new DataValidationException(String.format(RECOMMENDATION_NOT_FOUND, recommendationId));
+        }
 
         return recommendationRepository.findById(recommendationId).get();
     }
@@ -84,8 +87,11 @@ public class RecommendationService {
                     return new DataValidationException(message);
                 });
 
-        userSkillGuaranteeRepository.deleteAllByGuarantorId(
-                recommendationToDelete.getAuthor().getId());
+        // Delete only the guarantees tied to this specific recommendation, not all of the author's.
+        userSkillGuaranteeRepository.deleteByRecommendation(
+                recommendationToDelete.getAuthor().getId(),
+                recommendationToDelete.getReceiver().getId(),
+                id);
         skillOfferRepository.deleteAllByRecommendationId(id);
         recommendationRepository.deleteById(id);
     }

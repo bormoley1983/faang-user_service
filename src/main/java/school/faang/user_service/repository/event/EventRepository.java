@@ -24,7 +24,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     @Query(nativeQuery = true, value = """
             SELECT e.* FROM event e
-            WHERE e.start_date >= :startTime AND e.startDate < :doubleStartTime
+            WHERE e.start_date >= :startTime AND e.start_date < :doubleStartTime
             """)
     List<Event> findEventsByStartTime(LocalDateTime startTime, LocalDateTime doubleStartTime);
 

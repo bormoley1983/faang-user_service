@@ -50,7 +50,7 @@ public class Goal {
     private String description;
 
     @Column(name = "status", nullable = false)
-    @Enumerated(EnumType.ORDINAL)
+    @Enumerated(EnumType.STRING)
     private GoalStatus status;
 
     @Column(name = "deadline")

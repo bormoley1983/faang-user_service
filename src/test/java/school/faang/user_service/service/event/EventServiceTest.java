@@ -136,6 +136,10 @@ public class EventServiceTest {
     public void testGetEventsByFilter() {
         when(eventRepository.findAll()).thenReturn(events);
 
+        // The mock List<EventFilter> returns null for stream() by default; stub it so the
+        // service's filter chain has an (empty) list of filters to iterate over.
+        when(eventFilters.stream()).thenReturn(java.util.stream.Stream.empty());
+
         List<Event> foundEvents = eventService.getEventsByFilter(eventFilterDto);
 
         assertNotNull(foundEvents);

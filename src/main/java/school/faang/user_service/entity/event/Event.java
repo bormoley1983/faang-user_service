@@ -72,11 +72,11 @@ public class Event {
     private List<Skill> relatedSkills;
 
     @Column(name = "type", nullable = false)
-    @Enumerated(EnumType.ORDINAL)
+    @Enumerated(EnumType.STRING)
     private EventType type;
 
     @Column(name = "status", nullable = false)
-    @Enumerated(EnumType.ORDINAL)
+    @Enumerated(EnumType.STRING)
     private EventStatus status;
 
     @CreationTimestamp

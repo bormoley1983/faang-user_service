@@ -95,14 +95,16 @@ public class MentorshipServiceTest {
 
     @Test
     void testDeleteMentee() {
-        mentorshipService.deleteMentee(mentor.getId(), mentee.getId());
+        // acting user is the mentor — a party of the mentorship.
+        mentorshipService.deleteMentee(mentor.getId(), mentor.getId(), mentee.getId());
 
         verify(mentorshipRepository).deleteByMentorIdAndMenteeId(mentor.getId(), mentee.getId());
     }
 
     @Test
     void testDeleteMentor() {
-        mentorshipService.deleteMentor(mentee.getId(), mentor.getId());
+        // acting user is the mentee — a party of the mentorship.
+        mentorshipService.deleteMentor(mentee.getId(), mentee.getId(), mentor.getId());
 
         verify(mentorshipRepository).deleteByMenteeIdAndMentorId(mentee.getId(), mentor.getId());
     }

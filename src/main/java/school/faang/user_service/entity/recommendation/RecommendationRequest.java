@@ -49,7 +49,7 @@ public class RecommendationRequest {
     private String message;
 
     @Column(name = "status", nullable = false)
-    @Enumerated(EnumType.ORDINAL)
+    @Enumerated(EnumType.STRING)
     private RequestStatus status;
 
     @Column(name = "rejection_reason", length = 4096)

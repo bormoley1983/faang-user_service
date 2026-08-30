@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import school.faang.user_service.config.context.UserContext;
 import school.faang.user_service.service.MentorshipService;
 
 import java.util.List;
@@ -17,6 +18,7 @@ import java.util.List;
 @RestController
 public class MentorshipController {
     private final MentorshipService mentorshipService;
+    private final UserContext userContext;
 
     @GetMapping("/{userId}/mentees")
     public List<Long> getMentees(@PathVariable Long userId) {
@@ -30,13 +32,13 @@ public class MentorshipController {
 
     @DeleteMapping("/mentee")
     public ResponseEntity<String> deleteMentee(@RequestParam Long mentorId, @RequestParam Long menteeId) {
-        mentorshipService.deleteMentee(mentorId, menteeId);
+        mentorshipService.deleteMentee(userContext.getUserId(), mentorId, menteeId);
         return ResponseEntity.ok().body("The mentee was successfully deleted");
     }
 
     @DeleteMapping("/mentor")
     public ResponseEntity<String> deleteMentor(@RequestParam Long mentorId, @RequestParam Long menteeId) {
-        mentorshipService.deleteMentor(mentorId, menteeId);
+        mentorshipService.deleteMentor(userContext.getUserId(), mentorId, menteeId);
         return ResponseEntity.ok().body("The mentor was successfully deleted");
     }
 

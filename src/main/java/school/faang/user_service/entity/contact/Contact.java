@@ -36,6 +36,6 @@ public class Contact {
     private String contact;
 
     @Column(name = "type", nullable = false)
-    @Enumerated(EnumType.ORDINAL)
+    @Enumerated(EnumType.STRING)
     private ContactType type;
 }

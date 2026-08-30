@@ -62,6 +62,20 @@ public class GoalService {
     }
 
     @Transactional
+    public Goal updateGoal(Long goalId, Long actingUserId, GoalDto updateDto) {
+         Goal existing = goalRepository.findById(goalId).orElseThrow(() ->
+                new NoSuchElementException(String.format("No goal found with such id %s", goalId))
+        );
+        if (existing.getUsers() == null || existing.getUsers().stream()
+                .noneMatch(user -> Objects.equals(user.getId(), actingUserId))) {
+            throw new IllegalArgumentException(
+                    String.format("User with id %s is not a participant of goal with id %s",
+                            actingUserId, goalId));
+        }
+        return updateGoal(goalId, updateDto);
+    }
+
+    @Transactional
     public Goal updateGoal(Long goalId, GoalDto updateDto) {
         Long goalParentId = updateDto.getParentId();
         List<Long> skillIds = Optional.ofNullable(updateDto.getSkillIds()).orElse(List.of());
@@ -114,6 +128,20 @@ public class GoalService {
         goalDto.setSkillIds(skillIds);
 
         return updateGoal(goalId, goalDto);
+    }
+
+    @Transactional
+    public void deleteGoal(Long goalId, Long actingUserId) {
+        Goal goal = goalRepository.findById(goalId).orElseThrow(() ->
+                new NoSuchElementException(String.format("No goal found with such id %s", goalId))
+        );
+        if (goal.getUsers() == null || goal.getUsers().stream()
+                .noneMatch(user -> Objects.equals(user.getId(), actingUserId))) {
+            throw new IllegalArgumentException(
+                    String.format("User with id %s is not a participant of goal with id %s",
+                            actingUserId, goalId));
+        }
+        goalRepository.deleteById(goalId);
     }
 
     public void deleteGoal(Long goalId) {

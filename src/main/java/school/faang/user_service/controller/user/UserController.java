@@ -1,5 +1,6 @@
 package school.faang.user_service.controller.user;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import school.faang.user_service.config.context.UserContext;
 import school.faang.user_service.dto.UserDto;
 import school.faang.user_service.dto.avatar.AvatarType;
 import school.faang.user_service.dto.user.UserRegistrationDto;
@@ -35,7 +37,7 @@ public class UserController {
     private final UserService userService;
     private final UserMapper userMapper;
     private final UserAvatarService userAvatarService;
-    // private final UserContext userContext;
+    private final UserContext userContext;
 
     @GetMapping("/{userId}")
     public ResponseEntity<UserDto> getUser(@PathVariable @Positive long userId) {
@@ -47,28 +49,33 @@ public class UserController {
     @PutMapping("/updateTelegramUserId")
     UserDto updateTelegramUserId(@RequestParam String telegramUsername,
                                  @RequestParam String telegramChatId) {
-        User user = userService.updateTelegramData(telegramUsername, telegramChatId);
+        long actingUserId = userContext.getUserId();
+        User user = userService.updateTelegramData(actingUserId, telegramUsername, telegramChatId);
         return userMapper.toDto(user);
     }
 
+    @PutMapping("/{id}/telegram-chat")
+    public ResponseEntity<UserDto> bindTelegramChat(@PathVariable long id,
+                                                    @RequestParam String telegramChatId) {
+        User user = userService.bindTelegramChat(userContext.getUserId(), id, telegramChatId);
+        return ResponseEntity.ok(userMapper.toDto(user));
+    }
+
     @PostMapping("/list")
-    public ResponseEntity<List<UserDto>> getUsersByIds(@RequestBody List<UserDto> users) {
-        List<User> userList = userMapper.toUserList(users);
-        userList = userService.getUsersByIds(userList);
+    public ResponseEntity<List<UserDto>> getUsersByIds(@RequestBody List<Long> userIds) {
+        List<User> userList = userService.getUsersByIds(userIds);
         List<UserDto> userDtoList = userMapper.toUserDtoList(userList);
         return ResponseEntity.ok(userDtoList);
     }
 
     @DeleteMapping("/deactivate")
-    public ResponseEntity<Void> deactivateUser(@RequestParam("userId") Long userId) {
-        userService.deactivateUser(userId);
+    public ResponseEntity<Void> deactivateUser() {
+        userService.deactivateUser(userContext.getUserId(), userContext.getUserId());
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserRegistrationDto> registerUser(@RequestBody @Validated UserRegistrationDto userRegistrationDto) {
-        // User user = userMapper.toEntity(userRegistrationDto);
-
+    public ResponseEntity<UserRegistrationDto> registerUser(@RequestBody @Valid UserRegistrationDto userRegistrationDto) {
         User registeredUser = userService.registerUser(
                 userRegistrationDto.getUsername(),
                 userRegistrationDto.getEmail(),

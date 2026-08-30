@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.util.Pair;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,7 +20,9 @@ import school.faang.user_service.entity.event.Event;
 import school.faang.user_service.entity.event.EventStatus;
 import school.faang.user_service.entity.goal.Goal;
 import school.faang.user_service.event.AnalyticsProfileViewEvent;
+import school.faang.user_service.events.UserDeactivationEvent;
 import school.faang.user_service.mapper.UserMapper;
+import school.faang.user_service.publisher.user.UserDeactivationEventPublisher;
 import school.faang.user_service.repository.CountryRepository;
 import school.faang.user_service.repository.UserRepository;
 import school.faang.user_service.repository.event.EventRepository;
@@ -27,8 +30,10 @@ import school.faang.user_service.repository.goal.GoalRepository;
 import school.faang.user_service.service.MentorshipService;
 import school.faang.user_service.service.s3.AvatarS3Service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 import static school.faang.user_service.utils.user.UserErrorMessage.USERS_NOT_FOUND;
@@ -46,6 +51,8 @@ public class UserService {
     private final UserAvatarService userAvatarService;
     private final UserContext userContext;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
+    private final UserDeactivationEventPublisher userDeactivationEventPublisher;
 
     public boolean userExists(Long userId) {
         return userRepository.existsById(userId);
@@ -62,13 +69,15 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException(String.format(USER_NOT_FOUND, id)));
     }
 
-    @PublishProfileViewEvent(events = AnalyticsProfileViewEvent.class)
+    // No @PublishProfileViewEvent here: this is a bulk lookup used by internal callers
+    // (Feign clients, batch jobs). Firing profile-view analytics for every id in the list
+    // would flood the analytics topic with synthetic events.
     @Transactional(readOnly = true)
-    public List<User> getUsersByIds(List<User> users) {
-        List<Long> userIds = users.stream()
-                .map(User::getId)
-                .toList();
-        users = userRepository.findAllById(userIds);
+    public List<User> getUsersByIds(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            throw new IllegalArgumentException(USERS_NOT_FOUND);
+        }
+        List<User> users = userRepository.findAllById(userIds);
         if (users.isEmpty()) {
             throw new IllegalArgumentException(USERS_NOT_FOUND);
         }
@@ -92,16 +101,21 @@ public class UserService {
         User newUser = User.builder()
                 .username(username)
                 .email(email)
-                .password(password)
+                .password(passwordEncoder.encode(password))
                 .country(country)
                 .telegramUsername(telegramUsername)
                 .active(true)
                 .experience(0)
                 .build();
 
-        userAvatarService.generateAvatarForNewUser(newUser, AvatarType.JPEG);
+        User savedUser = userRepository.save(newUser);
 
-        return userRepository.save(newUser);
+        // Generate avatar only after the user is persisted, so the presigned URL
+        // references a stable user id and a failed avatar generation does not roll back registration.
+        userAvatarService.generateAvatarForNewUser(savedUser, AvatarType.JPEG);
+        userRepository.save(savedUser);
+
+        return savedUser;
     }
 
     @Transactional
@@ -110,16 +124,30 @@ public class UserService {
     }
 
     @Transactional
-    public void deactivateUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException(String.format(USER_NOT_FOUND, userId)));
+    public void deactivateUser(Long actingUserId, Long targetUserId) {
+        // only the user themselves (or an admin, which this service does not model yet)
+        // may deactivate an account. The id comes from the authenticated header context,
+        // never from a client-supplied parameter alone.
+        if (!Objects.equals(actingUserId, targetUserId)) {
+            throw new IllegalArgumentException(
+                    String.format("User with id %s cannot deactivate user with id %s", actingUserId, targetUserId));
+        }
 
-        deactivateUserDependencies(userId);
+        User user = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException(String.format(USER_NOT_FOUND, targetUserId)));
+
+        deactivateUserDependencies(targetUserId);
 
         user.setActive(false);
         userRepository.save(user);
 
-        mentorshipService.stopUserMentorship(userId);
+        mentorshipService.stopUserMentorship(targetUserId);
+
+        // notify other services (posts, projects, notifications) that this user is gone.
+        userDeactivationEventPublisher.publishEvent(UserDeactivationEvent.builder()
+                .userId(targetUserId)
+                .timestamp(Instant.now())
+                .build());
     }
 
     @Transactional
@@ -148,10 +176,14 @@ public class UserService {
         long userId = userContext.getUserId();
         User currentUser = getUser(userId);
 
-        String imageKey = currentUser.getUserProfilePic().getFileId();
-        if (size.equalsIgnoreCase("large")) {
-            imageKey = currentUser.getUserProfilePic().getSmallFileId();
+        UserProfilePic profilePic = currentUser.getUserProfilePic();
+        if (profilePic == null || profilePic.getFileId() == null || profilePic.getFileId().isBlank()) {
+            throw new NoSuchElementException("User with id " + userId + " has no avatar");
         }
+
+        String imageKey = size != null && size.equalsIgnoreCase("small")
+                ? profilePic.getSmallFileId()
+                : profilePic.getFileId();
 
         return avatarS3Service.downloadAvatar(imageKey);
     }
@@ -229,9 +261,33 @@ public class UserService {
         return new PageImpl<>(userDos, pageable, userRepository.countByIdIn(ids));
     }
 
-    public User updateTelegramData(String telegramUsername, String telegramChatId) {
-        User user = userRepository.findByTelegramUsername(telegramUsername).orElseThrow(
-                () -> new IllegalArgumentException(String.format(USER_NOT_FOUND, telegramChatId)));
+    @Transactional
+    public User updateTelegramData(long actingUserId, String telegramUsername, String telegramChatId) {
+        // only the user identified by the authenticated context may update their
+        // own Telegram data.
+        User user = getUser(actingUserId);
+        if (telegramUsername != null && !telegramUsername.isBlank()
+                && !Objects.equals(user.getTelegramUsername(), telegramUsername)) {
+            throw new IllegalArgumentException(
+                    String.format("User with id %s cannot update Telegram data for username %s",
+                            actingUserId, telegramUsername));
+        }
+        user.setTelegramChatId(telegramChatId);
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public User bindTelegramChat(long actingUserId, long targetUserId, String telegramChatId) {
+        // a user may only bind their own Telegram chat.
+        if (!Objects.equals(actingUserId, targetUserId)) {
+            throw new IllegalArgumentException(
+                    String.format("User with id %s cannot bind Telegram chat for user with id %s",
+                            actingUserId, targetUserId));
+        }
+        if (telegramChatId == null || telegramChatId.isBlank()) {
+            throw new IllegalArgumentException("telegramChatId must not be blank");
+        }
+        User user = getUser(targetUserId);
         user.setTelegramChatId(telegramChatId);
         return userRepository.save(user);
     }

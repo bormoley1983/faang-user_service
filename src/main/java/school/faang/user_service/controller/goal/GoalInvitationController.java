@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import school.faang.user_service.config.context.UserContext;
 import school.faang.user_service.dto.goal.GoalInvitationDto;
 import school.faang.user_service.dto.goal.InvitationFilterDto;
 import school.faang.user_service.entity.goal.GoalInvitation;
@@ -27,6 +28,7 @@ public class GoalInvitationController {
 
     private final GoalInvitationService goalInvitationService;
     private final GoalInvitationMapper goalInvitationMapper;
+    private final UserContext userContext;
 
     @PostMapping
     public ResponseEntity<GoalInvitationDto> createInvitation(@RequestBody @Valid GoalInvitationDto invitation) {
@@ -37,13 +39,13 @@ public class GoalInvitationController {
 
     @PostMapping("/{invitationId}")
     public ResponseEntity<GoalInvitationDto> acceptGoalInvitation(@PathVariable @Positive(message = "Invitation ID must be a positive number.") long invitationId) {
-        GoalInvitation updatedGoalInvitation = goalInvitationService.acceptGoalInvitation(invitationId);
+         GoalInvitation updatedGoalInvitation = goalInvitationService.acceptGoalInvitation(invitationId, userContext.getUserId());
         return ResponseEntity.ok(goalInvitationMapper.toDto(updatedGoalInvitation));
     }
 
     @DeleteMapping("/{invitationId}")
     public ResponseEntity<GoalInvitationDto> rejectGoalInvitation(@PathVariable @Positive(message = "Invitation ID must be a positive number.") long invitationId) {
-        GoalInvitation updatedgoalInvitation = goalInvitationService.rejectGoalInvitation(invitationId);
+        GoalInvitation updatedgoalInvitation = goalInvitationService.rejectGoalInvitation(invitationId, userContext.getUserId());
         return ResponseEntity.ok(goalInvitationMapper.toDto(updatedgoalInvitation));
     }
 

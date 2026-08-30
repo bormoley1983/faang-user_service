@@ -133,7 +133,7 @@ public class GoalInvitationServiceTest {
         when(goalInvitationRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class, () ->
-                goalInvitationService.acceptGoalInvitation(nonExistentId));
+                goalInvitationService.acceptGoalInvitation(nonExistentId, 2L));
 
     }
 
@@ -175,7 +175,7 @@ public class GoalInvitationServiceTest {
         when(goalInvitationRepository.findById(invitationId)).thenReturn(Optional.of(goalInvitation));
 
         assertThrows(IllegalArgumentException.class, () ->
-                goalInvitationService.acceptGoalInvitation(invitationId));
+                goalInvitationService.acceptGoalInvitation(invitationId, user.getId()));
     }
 
 
@@ -202,7 +202,7 @@ public class GoalInvitationServiceTest {
         when(goalInvitationRepository.findById(invitationId)).thenReturn(Optional.of(goalInvitation));
 
         assertThrows(IllegalArgumentException.class, () ->
-                goalInvitationService.acceptGoalInvitation(invitationId));
+                goalInvitationService.acceptGoalInvitation(invitationId, user.getId()));
     }
 
     @Test
@@ -212,7 +212,7 @@ public class GoalInvitationServiceTest {
         when(goalInvitationRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class, () ->
-                goalInvitationService.rejectGoalInvitation(nonExistentId));
+                goalInvitationService.rejectGoalInvitation(nonExistentId, 2L));
     }
 
 

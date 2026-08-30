@@ -20,6 +20,7 @@ import school.faang.user_service.entity.event.Event;
 import school.faang.user_service.entity.event.EventStatus;
 import school.faang.user_service.entity.goal.Goal;
 import school.faang.user_service.mapper.UserMapperImpl;
+import school.faang.user_service.publisher.user.UserDeactivationEventPublisher;
 import school.faang.user_service.repository.UserRepository;
 import school.faang.user_service.repository.event.EventRepository;
 import school.faang.user_service.repository.goal.GoalRepository;
@@ -67,6 +68,12 @@ public class UserServiceTest {
 
     @Mock
     private UserAvatarService userAvatarService;
+
+    @Mock
+    private UserDeactivationEventPublisher userDeactivationEventPublisher;
+
+    @Mock
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private UserService userService;
@@ -128,7 +135,8 @@ public class UserServiceTest {
         when(userRepository.findAllById(anyList()))
                 .thenReturn(users);
 
-        List<User> actualUserList = userService.getUsersByIds(users);
+        // USR-06: the service now takes ids, not entities.
+        List<User> actualUserList = userService.getUsersByIds(List.of(userId));
 
         assertEquals(users.size(), actualUserList.size());
         assertEquals(users, actualUserList);
@@ -139,7 +147,8 @@ public class UserServiceTest {
     public void testDeactivateUser_UserNotFound() {
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> userService.deactivateUser(userId));
+        // USR-04: acting user must equal target user.
+        assertThrows(IllegalArgumentException.class, () -> userService.deactivateUser(userId, userId));
     }
 
     @Test
@@ -151,7 +160,7 @@ public class UserServiceTest {
         when(eventRepository.findAllByUserId(userId)).thenReturn(Collections.emptyList());
         when(eventRepository.findParticipatedEventsByUserId(userId)).thenReturn(Collections.emptyList());
 
-        userService.deactivateUser(userId);
+        userService.deactivateUser(userId, userId);
 
         verify(userRepository).findById(userId);
         verify(goalRepository).findGoalsByUserId(userId);
@@ -170,7 +179,7 @@ public class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.ofNullable(user));
         when(goalRepository.findGoalsByUserId(userId)).thenReturn(Stream.of(goal));
 
-        userService.deactivateUser(userId);
+        userService.deactivateUser(userId, userId);
 
         verify(goalRepository).deleteAll(List.of(goal));
     }
@@ -185,7 +194,7 @@ public class UserServiceTest {
         when(eventRepository.findAllByUserId(userId)).thenReturn(Collections.singletonList(event));
         when(eventRepository.findParticipatedEventsByUserId(userId)).thenReturn(Collections.singletonList(event));
 
-        userService.deactivateUser(userId);
+        userService.deactivateUser(userId, userId);
 
         verify(eventRepository).saveAll(List.of(event));
     }

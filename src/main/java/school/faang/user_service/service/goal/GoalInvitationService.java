@@ -62,11 +62,19 @@ public class GoalInvitationService {
     }
 
     @Transactional
-    public GoalInvitation acceptGoalInvitation(long goalInvitationId) {
+    public GoalInvitation acceptGoalInvitation(long goalInvitationId, long actingUserId) {
         GoalInvitation goalInvitation = goalInvitationRepository.findById(goalInvitationId)
                 .orElseThrow(() ->
                         new IllegalArgumentException("There is no invitation with id: " + goalInvitationId));
         User user = goalInvitation.getInvited();
+
+        if (!Objects.equals(user.getId(), actingUserId)) {
+            log.error("User with id {} tried to accept invitation {} addressed to user {}",
+                    actingUserId, goalInvitationId, user.getId());
+            throw new IllegalArgumentException(
+                    "Only the invited user (id " + user.getId() + ") can accept this invitation");
+        }
+
         List<Goal> userGoals = user.getGoals();
         Goal goal = goalInvitation.getGoal();
         List<User> goalUsers = goal.getUsers();
@@ -87,7 +95,8 @@ public class GoalInvitationService {
         userService.updateUser(user);
 
         List<Long> skillIds = goalMapper.mapSkills(goal.getSkillsToAchieve());
-        goalService.updateGoal(goal.getId(), goal, goal.getParent().getId(), skillIds);
+        Long parentId = goal.getParent() != null ? goal.getParent().getId() : null;
+        goalService.updateGoal(goal.getId(), goal, parentId, skillIds);
         GoalInvitation updated = goalInvitationRepository.save(goalInvitation);
 
         log.info("goal invitation with id: {}. Was accepted by user with id: {}", goalInvitation.getId(), user.getId());
@@ -95,9 +104,17 @@ public class GoalInvitationService {
     }
 
     @Transactional
-    public GoalInvitation rejectGoalInvitation(long goalInvitationId) {
+    public GoalInvitation rejectGoalInvitation(long goalInvitationId, long actingUserId) {
         GoalInvitation goalInvitation = goalInvitationRepository.findById(goalInvitationId)
                 .orElseThrow(() -> new IllegalArgumentException("There is no invitation with id = " + goalInvitationId));
+
+        // Only the invited user may reject their own invitation.
+        if (!Objects.equals(goalInvitation.getInvited().getId(), actingUserId)) {
+            log.error("User with id {} tried to reject invitation {} addressed to user {}",
+                    actingUserId, goalInvitationId, goalInvitation.getInvited().getId());
+            throw new IllegalArgumentException(
+                    "Only the invited user (id " + goalInvitation.getInvited().getId() + ") can reject this invitation");
+        }
 
         goalInvitation.setStatus(RequestStatus.REJECTED);
 

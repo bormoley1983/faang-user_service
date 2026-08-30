@@ -32,7 +32,7 @@ public class ContactPreference {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Enumerated(EnumType.ORDINAL)
+    @Enumerated(EnumType.STRING)
     @Column(name = "preference", nullable = false)
     private PreferredContact preference;
 }

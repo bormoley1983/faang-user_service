@@ -99,10 +99,12 @@ public class RecommendationServiceTest {
 
         when(skillRepository.findAll()).thenReturn(List.of(Skill.builder().id(1L).build()));
 
+        when(recommendationRepository.update(anyLong(), anyLong(), anyLong(), anyString())).thenReturn(1);
+
         Recommendation updatedRecommendation = recommendationService.update(recommendation);
 
         assertNotNull(updatedRecommendation);
-        verify(recommendationRepository, times(1)).update(anyLong(), anyLong(), anyString());
+        verify(recommendationRepository, times(1)).update(anyLong(), anyLong(), anyLong(), anyString());
         verify(recommendationRepository, times(2)).findById(1L);
     }
 
@@ -120,7 +122,9 @@ public class RecommendationServiceTest {
         recommendationService.delete(1L);
 
         verify(recommendationRepository, times(1)).deleteById(1L);
-        verify(userSkillGuaranteeRepository, times(1)).deleteAllByGuarantorId(1L);
+        // USR-14: only guarantees tied to this specific recommendation are removed.
+        verify(userSkillGuaranteeRepository, times(1))
+                .deleteByRecommendation(recommendation.getAuthor().getId(), recommendation.getReceiver().getId(), 1L);
         verify(skillOfferRepository, times(1)).deleteAllByRecommendationId(1L);
     }
 

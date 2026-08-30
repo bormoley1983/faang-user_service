@@ -54,12 +54,22 @@ public class MentorshipService {
     }
 
     @Transactional
-    public void deleteMentee(Long mentorId, Long menteeId) {
+    public void deleteMentee(Long actingUserId, Long mentorId, Long menteeId) {
+        if (!Objects.equals(actingUserId, mentorId) && !Objects.equals(actingUserId, menteeId)) {
+            throw new IllegalArgumentException(
+                    String.format("User with id %s is not a party of mentorship between %s and %s",
+                            actingUserId, mentorId, menteeId));
+        }
         mentorshipRepository.deleteByMentorIdAndMenteeId(mentorId, menteeId);
     }
 
     @Transactional
-    public void deleteMentor(Long menteeId, Long mentorId) {
+    public void deleteMentor(Long actingUserId, Long menteeId, Long mentorId) {
+        if (!Objects.equals(actingUserId, mentorId) && !Objects.equals(actingUserId, menteeId)) {
+            throw new IllegalArgumentException(
+                    String.format("User with id %s is not a party of mentorship between %s and %s",
+                            actingUserId, mentorId, menteeId));
+        }
         mentorshipRepository.deleteByMenteeIdAndMentorId(menteeId, mentorId);
     }
 }

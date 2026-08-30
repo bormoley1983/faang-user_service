@@ -2,6 +2,7 @@ package school.faang.user_service.service.event;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import school.faang.user_service.entity.User;
 import school.faang.user_service.repository.event.EventParticipationRepository;
 
@@ -14,6 +15,7 @@ public class EventParticipationService {
 
     private final EventParticipationRepository eventParticipationRepository;
 
+    @Transactional
     public void registerParticipant(long eventId, long userId) {
         if (eventParticipationRepository.existsUserByEventIdAndUserId(eventId, userId)) {
             throw new IllegalStateException(
@@ -23,6 +25,7 @@ public class EventParticipationService {
         eventParticipationRepository.register(eventId, userId);
     }
 
+    @Transactional
     public void unregisterParticipant(long eventId, long userId) {
         if (!eventParticipationRepository.existsUserByEventIdAndUserId(eventId, userId)) {
             throw new IllegalStateException(

@@ -10,6 +10,8 @@ import school.faang.user_service.config.context.UserContext;
 import school.faang.user_service.dto.avatar.AvatarType;
 import school.faang.user_service.entity.Country;
 import school.faang.user_service.entity.User;
+import school.faang.user_service.mapper.UserMapperImpl;
+import school.faang.user_service.publisher.user.UserDeactivationEventPublisher;
 import school.faang.user_service.repository.CountryRepository;
 import school.faang.user_service.repository.UserRepository;
 
@@ -43,6 +45,15 @@ class UserServiceRegistrationTest {
 
     @Mock
     private UserAvatarService userAvatarService;
+
+    @Mock
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @Mock
+    private UserDeactivationEventPublisher userDeactivationEventPublisher;
+
+    @Mock
+    private UserMapperImpl userMapper;
 
     @Test
     void testGetCurrentUserId() {
@@ -81,10 +92,14 @@ class UserServiceRegistrationTest {
 
         when(countryRepository.findById(countryId)).thenReturn(Optional.of(country));
 
+        // USR-01: the password is now hashed before persistence.
+        String hashedPassword = "{bcrypt}$2a$10$hashed";
+        when(passwordEncoder.encode(password)).thenReturn(hashedPassword);
+
         User userToSave = User.builder()
                 .username(username)
                 .email(email)
-                .password(password)
+                .password(hashedPassword)
                 .country(country)
                 .active(true)
                 .telegramUsername(telegramUserName)
@@ -98,13 +113,16 @@ class UserServiceRegistrationTest {
         assertNotNull(registeredUser);
         assertEquals(username, registeredUser.getUsername());
         assertEquals(email, registeredUser.getEmail());
+        assertEquals(hashedPassword, registeredUser.getPassword());
         assertEquals(country, registeredUser.getCountry());
         assertTrue(registeredUser.isActive());
         assertEquals(0, registeredUser.getExperience());
 
+        verify(passwordEncoder, times(1)).encode(password);
         verify(countryRepository, times(1)).findById(countryId);
+        // The service saves the user first, then again after avatar generation.
         verify(userAvatarService, times(1)).generateAvatarForNewUser(eq(userToSave), eq(AvatarType.JPEG));
-        verify(userRepository, times(1)).save(any(User.class));
+        verify(userRepository, times(2)).save(any(User.class));
     }
 
     @Test
@@ -138,6 +156,7 @@ class UserServiceRegistrationTest {
         country.setId(countryId);
 
         when(countryRepository.findById(countryId)).thenReturn(Optional.of(country));
+        when(passwordEncoder.encode(password)).thenReturn("{bcrypt}$2a$10$hashed");
         when(userRepository.save(any(User.class))).thenThrow(
                 new DataIntegrityViolationException("Unique constraint violated"));
 
@@ -146,8 +165,10 @@ class UserServiceRegistrationTest {
         );
 
         assertEquals("Unique constraint violated", exception.getMessage());
+        verify(passwordEncoder, times(1)).encode(password);
         verify(countryRepository, times(1)).findById(countryId);
         verify(userRepository, times(1)).save(any(User.class));
-        verify(userAvatarService, times(1)).generateAvatarForNewUser(any(User.class), eq(AvatarType.JPEG));
+        // The first save fails, so avatar generation is never reached.
+        verifyNoInteractions(userAvatarService);
     }
 }

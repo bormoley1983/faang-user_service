@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import school.faang.user_service.config.context.UserContext;
 import school.faang.user_service.dto.goal.GoalDto;
 import school.faang.user_service.dto.goal.GoalFilterDto;
 import school.faang.user_service.entity.goal.Goal;
@@ -32,11 +33,18 @@ public class GoalController {
 
     private final GoalService goalService;
     private final GoalMapper goalMapper;
+    private final UserContext userContext;
 
     @PostMapping("/{userId}")
     public ResponseEntity<GoalDto> createGoal(
             @PathVariable @Positive(message = "Please, provide positive user ID") Long userId,
             @RequestBody @Valid GoalDto goalDto) {
+
+        if (!userId.equals(userContext.getUserId())) {
+            throw new IllegalArgumentException(
+                    String.format("User with id %s cannot create a goal for user with id %s",
+                            userContext.getUserId(), userId));
+        }
 
         Goal createdGoal = goalService.createGoal(userId,
                 goalDto.getTitle(),
@@ -54,9 +62,7 @@ public class GoalController {
             @PathVariable @Positive(message = "Please, provide positive goal ID") Long goalId,
             @RequestBody @Valid GoalDto goalDto) {
 
-        Goal updatedGoal = goalService.updateGoal(goalId,
-                goalDto
-        );
+        Goal updatedGoal = goalService.updateGoal(goalId, userContext.getUserId(), goalDto);
         GoalDto updatedGoalDto = goalMapper.toDto(updatedGoal);
         return ResponseEntity.status(HttpStatus.OK).
                 body(updatedGoalDto);
@@ -66,7 +72,7 @@ public class GoalController {
     public ResponseEntity<String> deleteGoal(
             @PathVariable @Positive(message = "Please, provide positive goal ID") Long goalId) {
 
-        goalService.deleteGoal(goalId);
+         goalService.deleteGoal(goalId, userContext.getUserId());
         return ResponseEntity.ok().body(String.format("Goal with id %s has been deleted successfully !", goalId));
     }
 
