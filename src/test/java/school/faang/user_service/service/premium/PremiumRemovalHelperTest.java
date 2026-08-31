@@ -28,4 +28,29 @@ class PremiumRemovalHelperTest {
 
         verify(premiumRepository).deleteAll(batch);
     }
+
+    @Test
+    void deleteBatch_whenEmptyBatch_deletesNothing() {
+        // Arrange
+        List<Premium> batch = List.of();
+
+        // Act
+        helper.deleteBatch(batch);
+
+        // Assert
+        verify(premiumRepository).deleteAll(batch);
+    }
+
+    @Test
+    void deleteBatch_whenSingleElement_deletesIt() {
+        // Arrange
+        Premium premium = Premium.builder().id(99L).build();
+        List<Premium> batch = List.of(premium);
+
+        // Act
+        helper.deleteBatch(batch);
+
+        // Assert
+        verify(premiumRepository).deleteAll(batch);
+    }
 }

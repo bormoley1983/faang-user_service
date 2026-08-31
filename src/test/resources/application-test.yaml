@@ -18,3 +18,7 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       group-id: "test-group"
+
+s3:
+  accessKey: test-access-key
+  secretKey: test-secret-key

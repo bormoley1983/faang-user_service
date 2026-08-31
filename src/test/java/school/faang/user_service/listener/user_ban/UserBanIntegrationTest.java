@@ -3,6 +3,7 @@ package school.faang.user_service.listener.user_ban;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import faang.school.event.UserBanEvent;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +17,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.jdbc.Sql;
-import org.testcontainers.kafka.ConfluentKafkaContainer;
+import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.junit.jupiter.Container;
@@ -34,6 +35,7 @@ import static org.springframework.test.context.jdbc.Sql.ExecutionPhase.AFTER_TES
 import static org.springframework.test.context.jdbc.Sql.ExecutionPhase.BEFORE_TEST_METHOD;
 import static org.awaitility.Awaitility.await;
 
+@Tag("integration")
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(
@@ -59,15 +61,15 @@ public class UserBanIntegrationTest {
     @Value("${spring.kafka.topics.user-ban-topic.name}")
     private String userBanTopicName;
 
-    private static final DockerImageName KAFKA_IMAGE = DockerImageName.parse("confluentinc/cp-kafka:7.7.7");
+    private static final DockerImageName KAFKA_IMAGE = DockerImageName.parse("apache/kafka:4.3.1");
     private static final DockerImageName POSTGRES_IMAGE = DockerImageName.parse("postgres:18-alpine");
 
     static Network testNetwork = Network.newNetwork();
 
     @Container
     @SuppressWarnings("resource")
-    static final ConfluentKafkaContainer KAFKA_CONTAINER = 
-        new ConfluentKafkaContainer(KAFKA_IMAGE)
+    static final KafkaContainer KAFKA_CONTAINER =
+        new KafkaContainer(KAFKA_IMAGE)
             .withNetwork(testNetwork)
             .withNetworkAliases("test-kafka");
 

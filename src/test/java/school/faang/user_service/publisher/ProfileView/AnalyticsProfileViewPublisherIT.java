@@ -2,6 +2,7 @@ package school.faang.user_service.publisher.ProfileView;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -13,7 +14,7 @@ import org.springframework.test.context.jdbc.Sql;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.kafka.ConfluentKafkaContainer;
+import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 import school.faang.user_service.config.Kafka.EventListener;
 import school.faang.user_service.config.context.UserContext;
@@ -31,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.context.jdbc.Sql.ExecutionPhase.AFTER_TEST_METHOD;
 import static org.springframework.test.context.jdbc.Sql.ExecutionPhase.BEFORE_TEST_METHOD;
 
+@Tag("integration")
 @Sql(scripts = {"/UserService/drop.sql", "/UserService/user_initial.sql"}, executionPhase = BEFORE_TEST_METHOD)
 @Sql(scripts = "/UserService/drop.sql", executionPhase = AFTER_TEST_METHOD)
 @Import(EventListener.class)
@@ -52,7 +54,7 @@ public class AnalyticsProfileViewPublisherIT {
     private ObjectMapper objectMapper;
 
     private static final DockerImageName POSTGRES_IMAGE = DockerImageName.parse("postgres:18-alpine");
-    private static final DockerImageName KAFKA_IMAGE = DockerImageName.parse("confluentinc/cp-kafka:7.7.7");
+    private static final DockerImageName KAFKA_IMAGE = DockerImageName.parse("apache/kafka:4.3.1");
 
     static Network testNetwork = Network.newNetwork();
 
@@ -69,8 +71,8 @@ public class AnalyticsProfileViewPublisherIT {
 
     @Container
     @SuppressWarnings("resource")
-    protected static final  ConfluentKafkaContainer KAFKA_CONTAINER = 
-        new ConfluentKafkaContainer(KAFKA_IMAGE)
+    protected static final KafkaContainer KAFKA_CONTAINER =
+        new KafkaContainer(KAFKA_IMAGE)
             .withNetwork(testNetwork)
             .withNetworkAliases("test-kafka");
 
