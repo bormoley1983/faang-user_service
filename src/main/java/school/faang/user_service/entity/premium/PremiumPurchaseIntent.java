@@ -2,6 +2,7 @@
 package school.faang.user_service.entity.premium;
 
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import java.math.BigDecimal;
@@ -10,12 +11,14 @@ import java.util.UUID;
 
 @Getter
 @Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Entity
 @Table(name = "premium_purchase_intent")
 public class PremiumPurchaseIntent {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @Column(name = "idempotency_key", nullable = false, unique = true, updatable = false)

@@ -27,11 +27,10 @@ public class SubscriptionService {
         subscriptionValidator.validateNotSelfSubscription(
                 "The user cannot subscribe to himself", followerId, followeeId);
 
-        if (subscriptionRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId)) {
-            throw new DataValidationException("The user has already subscribed");
+        int inserted = subscriptionRepository.followUser(followerId, followeeId);
+        if (inserted == 0) {
+            log.debug("Follow already present for follower={} followee={}", followerId, followeeId);
         }
-
-        subscriptionRepository.followUser(followerId, followeeId);
     }
 
     @Transactional

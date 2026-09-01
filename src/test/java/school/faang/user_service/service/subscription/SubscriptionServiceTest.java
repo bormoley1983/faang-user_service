@@ -36,30 +36,51 @@ public class SubscriptionServiceTest {
     private List<UserFilter> userFilters;
 
     @Test
-    public void testFollowUserExistsByFollowerIdAndFolloweeId() {
+    public void testFollowUser_whenAlreadyFollowing_isIdempotentAndDoesNotThrow() {
+        // Arrange: the conflict-safe insert reports 0 rows affected (duplicate)
         Pair<Long, Long> userIds = preparePairUserIds();
 
         when(subscriptionRepository
-                .existsByFollowerIdAndFolloweeId(userIds.getFirst(), userIds.getSecond()))
-                .thenReturn(true);
+                .followUser(userIds.getFirst(), userIds.getSecond()))
+                .thenReturn(0);
 
-        assertThrows(DataValidationException.class,
-                () -> subscriptionService
-                        .followUser(userIds.getFirst(), userIds.getSecond()));
-    }
-
-    @Test
-    public void testFollowUser() {
-        Pair<Long, Long> userIds = preparePairUserIds();
-
-        when(subscriptionRepository
-                .existsByFollowerIdAndFolloweeId(userIds.getFirst(), userIds.getSecond()))
-                .thenReturn(false);
-
+        // Act + Assert: no exception, stable domain outcome
         subscriptionService.followUser(userIds.getFirst(), userIds.getSecond());
 
         verify(subscriptionRepository, times(1))
                 .followUser(userIds.getFirst(), userIds.getSecond());
+    }
+
+    @Test
+    public void testFollowUser_whenNewSubscription_insertsRow() {
+        // Arrange: the conflict-safe insert reports 1 row affected (new)
+        Pair<Long, Long> userIds = preparePairUserIds();
+
+        when(subscriptionRepository
+                .followUser(userIds.getFirst(), userIds.getSecond()))
+                .thenReturn(1);
+
+        // Act
+        subscriptionService.followUser(userIds.getFirst(), userIds.getSecond());
+
+        // Assert
+        verify(subscriptionRepository, times(1))
+                .followUser(userIds.getFirst(), userIds.getSecond());
+    }
+
+    @Test
+    public void testFollowUser_whenSelfSubscription_throwsValidation() {
+        // Arrange: use a real validator so self-subscription is actually rejected
+        SubscriptionService serviceWithRealValidator = new SubscriptionService(
+                subscriptionRepository, new SubscriptionValidator(), userFilters);
+        long selfId = 7L;
+
+        // Act + Assert: validator rejects self-subscription before any insert
+        assertThrows(DataValidationException.class,
+                () -> serviceWithRealValidator.followUser(selfId, selfId));
+
+        verify(subscriptionRepository, org.mockito.Mockito.never())
+                .followUser(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyLong());
     }
 
     @Test

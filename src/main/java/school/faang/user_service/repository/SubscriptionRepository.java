@@ -9,9 +9,13 @@ import java.util.stream.Stream;
 
 public interface SubscriptionRepository extends JpaRepository<User, Long> {
 
-    @Query(nativeQuery = true, value = "insert into subscription (follower_id, followee_id) values (:followerId, :followeeId)")
+    @Query(nativeQuery = true, value = """
+            insert into subscription (follower_id, followee_id)
+            values (:followerId, :followeeId)
+            on conflict (follower_id, followee_id) do nothing
+            """)
     @Modifying
-    void followUser(long followerId, long followeeId);
+    int followUser(long followerId, long followeeId);
 
     @Query(nativeQuery = true, value = "delete from subscription where follower_id = :followerId and followee_id = :followeeId")
     @Modifying
