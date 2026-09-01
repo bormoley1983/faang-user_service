@@ -20,7 +20,7 @@ import school.faang.user_service.mapper.UserMapper;
 import school.faang.user_service.service.user.UserAvatarService;
 import school.faang.user_service.service.user.UserService;
 
-import java.net.URL;
+import java.net.URI;
 
 import java.util.Collections;
 import java.util.List;
@@ -149,7 +149,7 @@ class UserControllerTest {
         User user = new User();
         when(userService.getCurrentUserId()).thenReturn(1L);
         when(userService.getUser(1L)).thenReturn(user);
-        when(userAvatarService.getUserAvatar(user)).thenReturn(new URL("http://avatar"));
+        when(userAvatarService.getUserAvatar(user)).thenReturn(URI.create("http://avatar").toURL());
 
         ResponseEntity<String> response = controller.getUserAvatar();
 

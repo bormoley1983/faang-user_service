@@ -19,6 +19,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
+import java.net.URI;
 import java.net.URL;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -94,7 +95,7 @@ class S3ServiceTest {
 
     @Test
     void getUnexpiredUrl_returnsPresignedUrl() throws Exception {
-        URL expected = new URL("https://example.com/avatar.png");
+        URL expected = URI.create("https://example.com/avatar.png").toURL();
         PresignedGetObjectRequest presigned = mock(PresignedGetObjectRequest.class);
         when(presigned.url()).thenReturn(expected);
         when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presigned);

@@ -92,19 +92,8 @@ class UserServiceRegistrationTest {
 
         when(countryRepository.findById(countryId)).thenReturn(Optional.of(country));
 
-        // USR-01: the password is now hashed before persistence.
         String hashedPassword = "{bcrypt}$2a$10$hashed";
         when(passwordEncoder.encode(password)).thenReturn(hashedPassword);
-
-        User userToSave = User.builder()
-                .username(username)
-                .email(email)
-                .password(hashedPassword)
-                .country(country)
-                .active(true)
-                .telegramUsername(telegramUserName)
-                .experience(0)
-                .build();
 
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -120,7 +109,6 @@ class UserServiceRegistrationTest {
 
         verify(passwordEncoder, times(1)).encode(password);
         verify(countryRepository, times(1)).findById(countryId);
-        // The service saves the user first, then again after avatar generation.
         verify(userAvatarService, times(1)).generateAvatarForNewUser(any(User.class), eq(AvatarType.JPEG));
         verify(userRepository, times(2)).save(any(User.class));
     }

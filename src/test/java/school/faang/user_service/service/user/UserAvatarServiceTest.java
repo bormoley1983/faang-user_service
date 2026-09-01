@@ -12,6 +12,7 @@ import school.faang.user_service.entity.UserProfilePic;
 import school.faang.user_service.service.external.DiceBearService;
 import school.faang.user_service.service.external.S3Service;
 
+import java.net.URI;
 import java.net.URL;
 import java.util.NoSuchElementException;
 
@@ -43,7 +44,7 @@ class UserAvatarServiceTest {
         ReflectionTestUtils.setField(userAvatarService, "bucketName", "avatars");
         User user = User.builder().id(1L).build();
         byte[] avatar = {1, 2, 3};
-        URL url = new URL("https://example.com/avatar.jpeg");
+        URL url = URI.create("https://example.com/avatar.jpeg").toURL();
         when(diceBearService.generateAvatar(anyString(), eq(AvatarType.JPEG))).thenReturn(avatar);
         when(s3Service.getUnexpiredUrl(eq("avatars"), anyString())).thenReturn(url);
 
@@ -59,7 +60,7 @@ class UserAvatarServiceTest {
         UserProfilePic profilePic = new UserProfilePic();
         profilePic.setFileId("avatar.png");
         User user = User.builder().id(1L).userProfilePic(profilePic).build();
-        URL expected = new URL("https://example.com/avatar.png");
+        URL expected = URI.create("https://example.com/avatar.png").toURL();
         when(s3Service.getUnexpiredUrl("avatars", "avatar.png")).thenReturn(expected);
 
         assertEquals(expected, userAvatarService.getUserAvatar(user));

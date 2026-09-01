@@ -11,7 +11,6 @@ import school.faang.user_service.dto.event.EventDto;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class EventValidatorTest {

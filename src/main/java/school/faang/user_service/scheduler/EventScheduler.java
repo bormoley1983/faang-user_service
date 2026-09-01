@@ -13,7 +13,6 @@ import school.faang.user_service.entity.event.Event;
 import school.faang.user_service.publisher.event.NotificationEventStartEventPublisher;
 import school.faang.user_service.service.event.EventService;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
