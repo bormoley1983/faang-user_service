@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import school.faang.user_service.dto.goal.GoalDto;
 import school.faang.user_service.dto.goal.GoalFilterDto;
-import school.faang.user_service.entity.User;
 import school.faang.user_service.entity.goal.Goal;
 import school.faang.user_service.entity.goal.GoalStatus;
 import school.faang.user_service.filter.goal.GoalFilter;
@@ -40,13 +39,13 @@ public class GoalService {
     public Goal createGoal(Long userId, String title, String description, Long parentId, List<Long> skillIds) {
         //validation
         if (!userService.userExists(userId)) {
-            log.error("User with id {} doesn't exist", userId);
+            log.error("Goal creation rejected because the user does not exist");
             throw new NoSuchElementException(String.format("User with id %s doesn't exist", userId));
         }
 
         int numOfActiveGoals = goalRepository.countActiveGoalsPerUser(userId);
         if (numOfActiveGoals >= maxActiveGoalsPerUser) {
-            log.error("User with id {} has {} or more active goals", userId, maxActiveGoalsPerUser);
+            log.error("Goal creation rejected because the active-goal limit was reached");
             throw new IllegalStateException(String.format("User with id %s has %s or more active goals",
                     userId, maxActiveGoalsPerUser));
         }
@@ -57,7 +56,7 @@ public class GoalService {
         Goal createdGoal = goalRepository.create(title, description, parentId);
         assignSkillsToGoal(createdGoal.getId(), skillIds);
 
-        log.info("Goal with id {} and title {} has been created successfully and skills {} have been assigned", createdGoal.getId(), createdGoal.getTitle(), skillIds);
+        log.info("Goal created successfully");
         return createdGoal;
     }
 
@@ -86,9 +85,7 @@ public class GoalService {
         );
 
         if (goalToUpdate.getStatus() == GoalStatus.COMPLETED) {
-            log.error("The goal with id {} and title {} is already completed and impossible to modify",
-                    goalId, goalToUpdate.getTitle()
-            );
+            log.error("A completed goal cannot be modified");
             throw new IllegalStateException(String.format("The goal with id %s and title %s is already completed and impossible to modify",
                     goalId, goalToUpdate.getTitle())
             );
@@ -104,18 +101,18 @@ public class GoalService {
         }
 
         goalToUpdate = goalRepository.save(goalToUpdate);
-        log.info("Goal with id {} and title {} has been updated successfully", updateDto.getId(), updateDto.getTitle());
+        log.info("Goal updated successfully");
 
         //update skills assigned to the goal
         if (!skillIds.isEmpty()) {
             goalRepository.removeSkillsFromGoal(goalId);
             assignSkillsToGoal(goalId, skillIds);
-            log.info("Skills with ids {} have been set for the goal with id {}", skillIds, goalId);
+            log.info("Goal skills updated successfully");
         }
 
         if (updateDto.getStatus() == GoalStatus.COMPLETED) {
             skillService.assignSkillsFromGoalToUsers(goalId, goalToUpdate.getUsers());
-            log.info("Skills from the goal with id {} have been assigned to the users {}", goalId, goalToUpdate.getUsers().stream().map(User::getId).toList());
+            log.info("Completed-goal skills assigned successfully");
         }
 
         return goalToUpdate;
@@ -169,7 +166,7 @@ public class GoalService {
     public List<Goal> findSubGoalsByUserId(Long userId, GoalFilterDto filterDto) {
         //validation
         if (!userService.userExists(userId)) {
-            log.error("User with id {} doesn't exist", userId);
+            log.error("Sub-goal lookup rejected because the user does not exist");
             throw new NoSuchElementException(String.format("User with id %s doesn't exist", userId));
         }
 

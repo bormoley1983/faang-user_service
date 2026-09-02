@@ -32,7 +32,7 @@ public class SkillOffer {
 
     @ManyToOne
     @JoinColumn(name = "skill_id", nullable = false)
-    public Skill skill;
+    private Skill skill;
 
     @ManyToOne
     @JoinColumn(name = "recommendation_id", nullable = false)

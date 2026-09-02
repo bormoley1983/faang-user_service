@@ -32,7 +32,7 @@ public class RecommendationService {
     private final SkillOfferRepository skillOfferRepository;
     private final UserSkillGuaranteeRepository userSkillGuaranteeRepository;
     private final SkillRepository skillRepository;
-    private final int monthsAllowedAfterRecommendationCreation = 6;
+    private static final int MONTHS_ALLOWED_AFTER_RECOMMENDATION_CREATION = 6;
 
     @Transactional
     public Recommendation create(Recommendation recommendation) {
@@ -144,12 +144,12 @@ public class RecommendationService {
 
         pastRecommendation.ifPresent(rec -> {
             LocalDateTime expirationDate = rec.getCreatedAt()
-                    .plusMonths(monthsAllowedAfterRecommendationCreation);
+                    .plusMonths(MONTHS_ALLOWED_AFTER_RECOMMENDATION_CREATION);
             boolean isWithinAllowedPeriod = expirationDate.isBefore(LocalDateTime.now());
 
             if (!isWithinAllowedPeriod) {
                 var message = String.format(RECOMMENDATION_PERIOD,
-                        monthsAllowedAfterRecommendationCreation);
+                        MONTHS_ALLOWED_AFTER_RECOMMENDATION_CREATION);
                 throw new DataValidationException(message);
             }
         });

@@ -27,7 +27,7 @@ public class SkillService {
     private final SkillRepository skillRepository;
     private final SkillOfferRepository skillOfferRepository;
     private final UserSkillGuaranteeRepository userSkillGuaranteeRepository;
-    private final int minSkillOffers = 3;
+    private static final int MIN_SKILL_OFFERS = 3;
 
     public Optional<Skill> findSkillById(Long skillId) {
         return skillRepository.findById(skillId);
@@ -70,7 +70,7 @@ public class SkillService {
 
         List<SkillOffer> skillOffers = skillOfferRepository.findAllOffersOfSkill(
                 skillId, userId);
-        if (skillOffers.size() >= minSkillOffers) {
+        if (skillOffers.size() >= MIN_SKILL_OFFERS) {
             List<UserSkillGuarantee> guarantees = skillOffers.stream()
                     .map(skillOffer -> UserSkillGuarantee.builder()
                             .guarantor(skillOffer.getRecommendation().getAuthor())

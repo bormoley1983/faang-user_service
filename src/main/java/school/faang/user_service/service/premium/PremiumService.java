@@ -54,26 +54,27 @@ public class PremiumService {
         PaymentRequest request = new PaymentRequest(intent.getPaymentNumber(), intent.getAmount(), Currency.USD);
 
         ResponseEntity<PaymentResponse> response = paymentServiceClient.sendPayment(request);
+        PaymentResponse responseBody = response.getBody();
 
-        if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-            String message = response.getBody() != null && response.getBody().message() != null
-                    ? response.getBody().message()
+        if (response.getStatusCode() != HttpStatus.OK || responseBody == null) {
+            String message = responseBody != null && responseBody.message() != null
+                    ? responseBody.message()
                     : "Payment service returned no body with status " + response.getStatusCode();
             log.error("Payment failed for premium intent {} with status {}", intent.getId(), response.getStatusCode());
             throw new PaymentFailedException(message);
         }
 
         // Verify the payment actually succeeded, not just that the HTTP call was OK.
-        if (response.getBody().status() != PaymentStatus.SUCCESS) {
-            String message = response.getBody().message() != null
-                    ? response.getBody().message()
-                    : "Payment status is " + response.getBody().status();
-            log.error("Payment for premium intent {} did not succeed: {}", intent.getId(), response.getBody().status());
+        if (responseBody.status() != PaymentStatus.SUCCESS) {
+            String message = responseBody.message() != null
+                    ? responseBody.message()
+                    : "Payment status is " + responseBody.status();
+            log.error("Payment for premium intent {} did not succeed: {}", intent.getId(), responseBody.status());
             throw new PaymentFailedException(message);
         }
-        if (response.getBody().paymentNumber() != intent.getPaymentNumber()) {
+        if (responseBody.paymentNumber() != intent.getPaymentNumber()) {
             throw new PaymentFailedException("Payment response number does not match premium purchase intent");
         }
-        return response.getBody();
+        return responseBody;
     }
 }
