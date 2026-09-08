@@ -8,6 +8,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -43,6 +44,21 @@ public class GlobalExceptionHandler {
         }
 
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * The default MVC static-resource resolver reports an unmapped request as
+     * {@link NoResourceFoundException}; preserve its HTTP 404 semantics.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, String>> handleNoResourceFound(NoResourceFoundException ex) {
+        log.warn("No resource found for {} {}", ex.getHttpMethod(), ex.getResourcePath());
+
+        Map<String, String> response = new HashMap<>();
+        response.put("error", ErrorMessages.NOT_FOUND.getMessage());
+        response.put("message", "No resource found for " + ex.getHttpMethod() + " " + ex.getResourcePath());
+
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(Exception.class)

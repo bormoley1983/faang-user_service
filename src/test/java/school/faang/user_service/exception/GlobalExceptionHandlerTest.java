@@ -4,8 +4,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -13,6 +15,7 @@ import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 class GlobalExceptionHandlerTest {
@@ -86,6 +89,20 @@ class GlobalExceptionHandlerTest {
                 () -> assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode()),
                 () -> assertEquals("Internal Server Error", Objects.requireNonNull(response.getBody()).get("error")),
                 () -> assertEquals("Unexpected error", Objects.requireNonNull(response.getBody()).get("message"))
+        );
+    }
+
+    @Test
+    void testHandleNoResourceFoundException() {
+        NoResourceFoundException exception = new NoResourceFoundException(
+                HttpMethod.GET, "No static resource", "/does-not-exist");
+
+        ResponseEntity<Map<String, String>> response = exceptionHandler.handleNoResourceFound(exception);
+
+        assertAll(
+                () -> assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode()),
+                () -> assertEquals("Not Found", Objects.requireNonNull(response.getBody()).get("error")),
+                () -> assertTrue(Objects.requireNonNull(response.getBody()).get("message").contains("/does-not-exist"))
         );
     }
 }
