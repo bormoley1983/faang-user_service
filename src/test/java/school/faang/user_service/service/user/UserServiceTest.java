@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,7 +18,7 @@ import school.faang.user_service.entity.UserProfilePic;
 import school.faang.user_service.entity.event.Event;
 import school.faang.user_service.entity.event.EventStatus;
 import school.faang.user_service.entity.goal.Goal;
-import school.faang.user_service.mapper.UserMapperImpl;
+import school.faang.user_service.mapper.UserMapper;
 import school.faang.user_service.publisher.user.UserDeactivationEventPublisher;
 import school.faang.user_service.repository.UserRepository;
 import school.faang.user_service.repository.event.EventRepository;
@@ -63,8 +62,8 @@ public class UserServiceTest {
     @Mock
     private AvatarS3Service avatarS3Service;
 
-    @Spy
-    private UserMapperImpl userMapperImpl;
+    @Mock
+    private UserMapper userMapper;
 
     @Mock
     private UserAvatarService userAvatarService;
@@ -283,13 +282,13 @@ public class UserServiceTest {
     void testGetUsersByIds() {
         List<Long> userIds = List.of(userId);
         List<User> users = List.of(user);
-        UserDto userDto = userMapperImpl.toDto(user);
+        UserDto userDto = UserDto.builder().id(userId).build();
         List<UserDto> userDtos = List.of(userDto);
 
         Pageable pageable = PageRequest.of(0, 10);
 
         when(userRepository.findByIdIn(anyList(), any(Pageable.class))).thenReturn(users);
-        when(userMapperImpl.toDto(any(User.class))).thenReturn(userDto);
+        when(userMapper.toDto(any(User.class))).thenReturn(userDto);
         when(userRepository.countByIdIn(anyList())).thenReturn(1L);
 
         Page<UserDto> result = userService.getUsersByIds(userIds, pageable);
