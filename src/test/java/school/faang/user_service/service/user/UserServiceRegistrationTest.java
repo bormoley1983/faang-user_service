@@ -10,7 +10,7 @@ import school.faang.user_service.config.context.UserContext;
 import school.faang.user_service.dto.avatar.AvatarType;
 import school.faang.user_service.entity.Country;
 import school.faang.user_service.entity.User;
-import school.faang.user_service.mapper.UserMapperImpl;
+import school.faang.user_service.mapper.UserMapper;
 import school.faang.user_service.publisher.user.UserDeactivationEventPublisher;
 import school.faang.user_service.repository.CountryRepository;
 import school.faang.user_service.repository.UserRepository;
@@ -53,7 +53,7 @@ class UserServiceRegistrationTest {
     private UserDeactivationEventPublisher userDeactivationEventPublisher;
 
     @Mock
-    private UserMapperImpl userMapper;
+    private UserMapper userMapper;
 
     @Test
     void testGetCurrentUserId() {
