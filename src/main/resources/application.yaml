@@ -41,6 +41,25 @@ spring:
 server:
   port: 8080
 
+management:
+  endpoints:
+    web:
+      exposure:
+        # Bounded, unauthenticated operational surface for Kubernetes probes.
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        liveness:
+          # Liveness must not depend on external systems (DB/Redis/Kafka/S3).
+          include: ping
+        readiness:
+          # Readiness reflects the core dependencies required to serve traffic.
+          include: db,redis,ping
+
 project-service:
   host: ${PROJECT_SERVICE_HOST:localhost}
   port: ${PROJECT_SERVICE_PORT:8082}
@@ -50,13 +69,15 @@ payment-service:
   port: ${PAYMENT_SERVICE_PORT:8082}
 
 swagger:
-  api-docs:
-    path: /v1/api-docs
   swagger-ui:
     path: /swagger-ui.html
     display-request-duration: true
     operations-sorter: method
     tags-sorter: alpha
+    enabled: ${SWAGGERUI_ENABLED:true}
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:true}
+    path: /v1/api-docs
 
 s3:
   endpoint: ${S3_ENDPOINT:http://localhost:9000}
